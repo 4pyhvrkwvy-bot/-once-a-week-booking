@@ -50,23 +50,56 @@ function timeLabel(v){return String(v||'').slice(0,5)}
 
 function durationFor(b){return Number(b.duration_minutes)||60}
 function statusInfo(b){const map={pending:['รอยืนยัน','status-yellow'],confirmed:['ยืนยันแล้ว','status-blue'],arrived:['มาถึงร้าน','status-yellow'],active:['กำลังทำกิจกรรม','status-green'],paused:['พักเวลา','status-yellow'],completed:['เสร็จสิ้น','status-gray'],cancelled:['ยกเลิก','status-gray'],no_show:['ไม่มาตามนัด','status-red']};return map[b.status]||[b.status,'status-gray']}
-function timerText(b){
-  if(!b.started_at)return '00:00:00';
+function elapsedSeconds(b){
+  if(!b.started_at)return 0;
   const startMs=new Date(b.started_at).getTime();
-  const pauseMs=b.paused_at?new Date(b.paused_at).getTime():Date.now();
-  const endMs=b.status==='paused'?pauseMs:Date.now();
+  const endMs=b.status==='paused'&&b.paused_at?new Date(b.paused_at).getTime():Date.now();
   const pausedSeconds=Number(b.total_paused_seconds||0);
-  const seconds=Math.max(0,Math.floor((endMs-startMs)/1000)-pausedSeconds);
+  return Math.max(0,Math.floor((endMs-startMs)/1000)-pausedSeconds);
+}
+function formatClock(seconds){
   const h=Math.floor(seconds/3600),m=Math.floor(seconds%3600/60),sec=seconds%60;
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
 }
+function timerText(b){return formatClock(elapsedSeconds(b));}
+function timerCaption(b){
+  const mins=Math.ceil(elapsedSeconds(b)/60);
+  const target=durationFor(b);
+  return mins>target?`เกินเวลาที่กำหนด ${mins-target} นาที`:`เวลาทำจริง ${mins} / ${target} นาที`;
+}
 
-function renderCard(b){const [label,cls]=statusInfo(b);const detail=`${dateLabel(b.booking_date)} · ${timeLabel(b.start_time)}–${timeLabel(b.end_time)} น.<br>โทร ${esc(b.customer_phone||'ไม่ระบุ')} · ${Number(b.party_size)} คน<br>${esc(b.table_name||'ยังไม่กำหนดโต๊ะ')}${b.created_by?`<br>บันทึกโดย ${esc(b.created_by)}`:''}${b.last_updated_by?` · แก้ไขล่าสุดโดย ${esc(b.last_updated_by)}`:''}`;let buttons='';if(b.status==='confirmed'||b.status==='pending')buttons+=`<button class="smallbtn" data-action="arrived" data-id="${b.id}">มาถึงร้านแล้ว</button><button class="smallbtn primary" data-action="start" data-id="${b.id}">เริ่มกิจกรรม</button>`;if(b.status==='arrived')buttons+=`<button class="smallbtn primary" data-action="start" data-id="${b.id}">เริ่มกิจกรรม</button>`;if(b.status==='active')buttons+=`<button class="smallbtn" data-action="pause" data-id="${b.id}">พักเวลา</button><button class="smallbtn primary" data-action="finish" data-id="${b.id}">เสร็จสิ้น</button>`;if(b.status==='paused')buttons+=`<button class="smallbtn primary" data-action="resume" data-id="${b.id}">ทำต่อ</button>`;if(!['completed','cancelled','no_show'].includes(b.status))buttons+=`<button class="smallbtn" data-action="cancel" data-id="${b.id}">ยกเลิก</button>`;return `<article class="booking"><div style="display:flex;justify-content:space-between;gap:8px;align-items:start"><div><h3>${esc(b.customer_name)} · ${b.party_size} คน</h3><div class="subtle">${esc(b.booking_code||'')}</div></div><span class="badge ${cls}">${label}</span></div><div class="meta"><b>${esc(b.activity_name||'Workshop')}</b><br>${detail}<br>⏱ เวลาทำกิจกรรมจริง: ${b.status==='active'||b.status==='paused'?timerText(b):'—'}<br>หมายเหตุ: ${esc(b.notes||'—')}</div>${b.status==='active'?`<div class="timer" data-timer="${b.id}">${timerText(b)}</div>`:''}<div class="booking-actions">${buttons}</div></article>`}
+function renderCard(b){
+  const [label,cls]=statusInfo(b);
+  const detail=`${dateLabel(b.booking_date)} · ${timeLabel(b.start_time)}–${timeLabel(b.end_time)} น.<br>โทร ${esc(b.customer_phone||'ไม่ระบุ')} · ${Number(b.party_size)} คน<br>${esc(b.table_name||'ยังไม่กำหนดโต๊ะ')}${b.created_by?`<br>บันทึกโดย ${esc(b.created_by)}`:''}${b.last_updated_by?` · แก้ไขล่าสุดโดย ${esc(b.last_updated_by)}`:''}`;
+  let buttons='';
+  if(b.status==='confirmed'||b.status==='pending')buttons+=`<button class="smallbtn" data-action="arrived" data-id="${b.id}">มาถึงร้านแล้ว</button><button class="smallbtn primary" data-action="start" data-id="${b.id}">เริ่มกิจกรรม</button>`;
+  if(b.status==='arrived')buttons+=`<button class="smallbtn primary" data-action="start" data-id="${b.id}">เริ่มกิจกรรม</button>`;
+  if(b.status==='active')buttons+=`<button class="smallbtn" data-action="pause" data-id="${b.id}">พักเวลา</button><button class="smallbtn primary" data-action="finish" data-id="${b.id}">จบกิจกรรม / คำนวณราคา</button>`;
+  if(b.status==='paused')buttons+=`<button class="smallbtn primary" data-action="resume" data-id="${b.id}">ทำต่อ</button><button class="smallbtn" data-action="finish" data-id="${b.id}">จบกิจกรรม / คำนวณราคา</button>`;
+  if(!['completed','cancelled','no_show'].includes(b.status))buttons+=`<button class="smallbtn" data-action="cancel" data-id="${b.id}">ยกเลิก</button>`;
+  const running=['active','paused'].includes(b.status);
+  return `<article class="booking"><div style="display:flex;justify-content:space-between;gap:8px;align-items:start"><div><h3>${esc(b.customer_name)} · ${b.party_size} คน</h3><div class="subtle">${esc(b.booking_code||'')}</div></div><span class="badge ${cls}">${label}</span></div><div class="meta"><b>${esc(b.activity_name||'Workshop')}</b><br>${detail}<br>⏱ เวลาที่กำหนด ${durationFor(b)} นาที${running?`<br><span data-timer-caption>${timerCaption(b)}</span>`:''}<br>หมายเหตุ: ${esc(b.notes||'—')}</div>${running?`<div class="timer" data-timer="${b.id}">${timerText(b)}</div>`:''}<div class="booking-actions">${buttons}</div></article>`;
+}
 function render(){const today=todayISO();const day=bookings.filter(b=>b.booking_date===today&&b.status!=='cancelled');$('todayLabel').textContent=new Date().toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'});$('stats').innerHTML=[['รายการวันนี้',day.length],['ผู้เข้าร่วม',day.reduce((n,b)=>n+Number(b.party_size||0),0)],['กำลังทำ',day.filter(b=>['active','paused'].includes(b.status)).length],['เสร็จแล้ววันนี้',day.filter(b=>b.status==='completed').length]].map(x=>`<div class="stat"><small>${x[0]}</small><strong>${x[1]}</strong></div>`).join('');const active=bookings.filter(b=>!['completed','cancelled','no_show'].includes(b.status));$('bookingList').innerHTML=active.length?active.map(renderCard).join(''):'<div class="empty">ยังไม่มีรายการจองที่ต้องจัดการ</div>';const hist=bookings.filter(b=>['completed','cancelled','no_show'].includes(b.status)).slice(0,30);$('historyList').innerHTML=hist.length?'<div class="panel">'+hist.map(b=>`<div style="padding:8px 0;border-bottom:1px dashed var(--line)"><b>${esc(b.customer_name)}</b> · ${esc(b.activity_name)} · ${dateLabel(b.booking_date)} ${timeLabel(b.start_time)} <span class="badge ${statusInfo(b)[1]}">${statusInfo(b)[0]}</span>${b.status==='completed'&&b.total_workshop_price!=null?`<div class="meta">ใช้เวลาจริง ${Number(b.actual_duration_minutes||0)} นาที · ค่ากิจกรรม ${Number(b.total_workshop_price).toLocaleString('th-TH')} บาท</div>`:''}</div>`).join('')+'</div>':'<div class="empty">ยังไม่มีประวัติ</div>'}
 async function rpc(name,args){const {data,error}=await db.rpc(name,args);if(error)throw error;return data}
 async function loadBookings(){try{bookings=await rpc('staff_list_bookings',{p_staff_token:token})||[];render()}catch(e){console.error(e);if(String(e.message||'').includes('STAFF_SESSION_EXPIRED')){await logout(false);toast('หมดเวลาการเข้าสู่ระบบ กรุณาใส่ PIN ใหม่')}else toast('โหลดรายการไม่สำเร็จ: '+e.message)}}
-async function updateAction(id,action,minutes=null){try{await rpc('staff_update_booking',{p_staff_token:token,p_booking_id:id,p_action:action,p_minutes:minutes});await loadBookings();toast('บันทึกเรียบร้อย')}catch(e){console.error(e);toast('บันทึกไม่สำเร็จ: '+e.message)}}
-async function act(action,id){let mins=null;if(action==='cancel'&&!confirm('ยืนยันยกเลิกรายการนี้?'))return;await updateAction(id,action,mins)}
+async function updateAction(id,action,minutes=null){
+  try{
+    await rpc('staff_update_booking',{p_staff_token:token,p_booking_id:id,p_action:action,p_minutes:minutes});
+    await loadBookings();
+    if(action==='finish'){
+      const done=bookings.find(x=>x.id===id);
+      if(done&&done.total_workshop_price!=null){
+        toast(`จบกิจกรรมแล้ว · ${done.actual_duration_minutes} นาที · ${Number(done.total_workshop_price).toLocaleString('th-TH')} บาท`);
+      }else toast('จบกิจกรรมแล้ว แต่ยังไม่พบยอดคำนวณ กรุณารีเฟรชและตรวจฐานข้อมูล');
+    }else toast('บันทึกเรียบร้อย');
+  }catch(e){console.error(e);toast('บันทึกไม่สำเร็จ: '+e.message)}
+}
+async function act(action,id){
+  if(action==='cancel'&&!confirm('ยืนยันยกเลิกรายการนี้?'))return;
+  if(action==='finish'&&!confirm('ยืนยันจบกิจกรรมและคำนวณค่าบริการตามเวลาที่ใช้จริง?'))return;
+  await updateAction(id,action,null);
+}
 async function addWalkin(){const name=$('wName').value.trim();if(!name)return toast('กรุณากรอกชื่อลูกค้า');const btn=$('walkinBtn');btn.disabled=true;try{await rpc('staff_create_walkin',{p_staff_token:token,p_customer_name:name,p_customer_phone:$('wPhone').value.trim(),p_size:'Hourly',p_party_size:Number($('wPeople').value),p_duration_minutes:Number($('wDuration').value),p_table_name:$('wTable').value});$('wName').value='';$('wPhone').value='';await loadBookings();toast('เพิ่ม Walk-in และเริ่มจับเวลาแล้ว')}catch(e){console.error(e);toast('เพิ่ม Walk-in ไม่สำเร็จ: '+e.message)}finally{btn.disabled=false}}
 function showDashboard(){ $('loginView').classList.add('hidden');$('dashboard').classList.remove('hidden');$('signedInAs').textContent='เข้าสู่ระบบในชื่อ '+staffName;loadBookings();openPatternManager(false);clearInterval(refreshTimer);refreshTimer=setInterval(loadBookings,45000)}
 async function login(){const name=$('staffName').value.trim(),pin=$('pin').value.trim();if(!name||!/^\d{8}$/.test(pin))return $('loginMessage').textContent='กรุณากรอกชื่อและ PIN 8 หลัก';const btn=$('loginBtn');btn.disabled=true;$('loginMessage').textContent='กำลังตรวจสอบ PIN...';try{const data=await rpc('staff_login',{p_display_name:name,p_pin:pin});const row=Array.isArray(data)?data[0]:data;if(!row?.session_token){$('loginMessage').textContent=row?.message||'เข้าสู่ระบบไม่สำเร็จ';return}token=row.session_token;staffName=row.staff_name;sessionStorage.setItem(TOKEN_KEY,token);sessionStorage.setItem('ow_staff_name',staffName);$('pin').value='';showDashboard()}catch(e){console.error(e);$('loginMessage').textContent='เข้าสู่ระบบไม่สำเร็จ: '+e.message}finally{btn.disabled=false}}
@@ -89,5 +122,5 @@ $('loginBtn').onclick=login;$('pin').addEventListener('keydown',e=>{if(e.key==='
 
 document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b)act(b.dataset.action,b.dataset.id)});
 (async()=>{if(token){try{await rpc('staff_list_bookings',{p_staff_token:token});showDashboard()}catch(e){await logout(false)}}})();
-setInterval(()=>{document.querySelectorAll('[data-timer]').forEach(el=>{const b=bookings.find(x=>x.id===el.dataset.timer);if(b)el.textContent=timerText(b)})},1000);
+setInterval(()=>{document.querySelectorAll('[data-timer]').forEach(el=>{const b=bookings.find(x=>x.id===el.dataset.timer);if(b){el.textContent=timerText(b);const card=el.closest('.booking');const cap=card?.querySelector('[data-timer-caption]');if(cap)cap.textContent=timerCaption(b)}})},1000);
 </script></body></html>
