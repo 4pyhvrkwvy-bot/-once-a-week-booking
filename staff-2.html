@@ -208,10 +208,12 @@ async function saveAdminEvent(e){
     p_status:$('eventStatus').value
   };
   if(!args.p_title||args.p_price_per_person<0||args.p_deposit_percent<0||args.p_deposit_percent>100||args.p_duration_minutes<1)return toast('กรุณาตรวจสอบข้อมูล');
+  const saveBtn=$('saveEventBtn');saveBtn.disabled=true;
   try{
     await rpc('staff_event_save',args);
     toast('บันทึก Event สำเร็จ');resetEventForm();await loadAdminEvents();
   }catch(err){toast('บันทึกไม่สำเร็จ: '+err.message)}
+  finally{saveBtn.disabled=false}
 }
 
 async function toggleAdminEvent(id){
@@ -251,7 +253,7 @@ async function addAdminSession(e){
   if(!date||!start||!end||end<=start||capacity<1)return toast('ตรวจสอบวันที่ เวลา และจำนวนที่นั่ง');
   try{
     await rpc('staff_event_add_session',{p_staff_token:token,p_event_id:selectedEventForSessions,p_session_date:date,p_start_time:start,p_end_time:end,p_capacity:capacity});
-    toast('เพิ่มรอบเวลาแล้ว');await loadAdminSessions();
+    toast('เพิ่มรอบเวลาแล้ว');$('eventSessionForm').reset();$('eventSessionStart').value='11:00';$('eventSessionEnd').value='13:00';$('eventSessionCapacity').value='6';await loadAdminSessions();
   }catch(e){toast('เพิ่มรอบไม่สำเร็จ: '+e.message)}
 }
 
@@ -260,7 +262,37 @@ async function setAdminSessionStatus(id,status){
   catch(e){toast('อัปเดตรอบไม่สำเร็จ: '+e.message)}
 }
 
-$('loginBtn').onclick=login;$('pin').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('logoutBtn').onclick=()=>logout();$('refreshBtn').onclick=loadBookings;$('walkinBtn').onclick=addWalkin;
+// Core Staff Workspace controls
+$('loginBtn').onclick=login;
+$('pin').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
+$('logoutBtn').onclick=()=>logout();
+$('refreshBtn').onclick=loadBookings;
+$('walkinBtn').onclick=addWalkin;
+
+// Event Management controls — these bindings were missing in the previous build.
+$('openEventAdminBtn').addEventListener('click', openEventAdmin);
+$('closeEventAdminBtn').addEventListener('click', ()=>{
+  $('eventAdminPanel').classList.add('hidden');
+  $('eventSessionPanel').classList.add('hidden');
+});
+$('eventForm').addEventListener('submit', saveAdminEvent);
+$('eventSessionForm').addEventListener('submit', addAdminSession);
+$('resetEventBtn').addEventListener('click', resetEventForm);
+
+// Keep event slug convenient to fill from the title, unless the owner has edited it.
+$('eventTitle').addEventListener('input', ()=>{
+  if ($('eventId').value) return;
+  const slugInput=$('eventSlug');
+  if (!slugInput.dataset.manual) {
+    slugInput.value=$('eventTitle').value.trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  }
+});
+$('eventSlug').addEventListener('input', ()=>{$('eventSlug').dataset.manual='1'});
+$('eventForm').addEventListener('reset', ()=>{
+  $('eventSlug').dataset.manual='';
+});
 
 document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b)act(b.dataset.action,b.dataset.id)});
 (async()=>{if(token){try{await rpc('staff_list_bookings',{p_staff_token:token});showDashboard()}catch(e){await logout(false)}}})();
