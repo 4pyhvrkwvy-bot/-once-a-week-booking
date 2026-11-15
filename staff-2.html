@@ -12,7 +12,52 @@
 <section id="loginView"><div class="eyebrow">PRIVATE STAFF ACCESS</div><h2>เข้าสู่ระบบพนักงาน</h2><div class="panel" style="max-width:480px;margin:20px auto"><div class="field"><label for="staffName">ชื่อผู้ใช้งาน</label><input id="staffName" autocomplete="username" value="เจ้าของร้าน" placeholder="ชื่อพนักงาน"></div><div class="field"><label for="pin">PIN 8 หลัก</label><input id="pin" type="password" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" autocomplete="current-password" placeholder="กรอก PIN 8 หลัก"></div><button class="btn" id="loginBtn" style="width:100%">เข้าสู่ระบบ</button><p class="subtle" id="loginMessage">ใช้ PIN ที่แสดงครั้งเดียวหลังตั้งค่าฐานข้อมูลสำเร็จ</p></div></section>
 <section id="dashboard" class="hidden"><div class="topbar"><div><div class="eyebrow" style="text-align:left">STAFF WORKSPACE</div><div class="subtle" id="signedInAs"></div></div><div class="pattern-toolbar"><button class="btn secondary" id="logoutBtn">ออกจากระบบ</button></div></div><div class="notice">รายการจองและการจัดการทั้งหมดบันทึกในฐานข้อมูลเดียวกับหน้าลูกค้า พนักงานทุกคนจะเห็นข้อมูลชุดเดียวกัน</div><div class="topbar"><h2 style="text-align:left;margin:12px 0">สรุปวันนี้</h2><button class="btn secondary" id="refreshBtn">รีเฟรชรายการ</button></div><div class="subtle" id="todayLabel"></div><div class="stats" id="stats"></div>
 <div class="panel"><h3 style="margin-top:0">เพิ่มลูกค้า Walk-in</h3><div class="row"><div class="field"><label for="wName">ชื่อลูกค้า *</label><input id="wName" placeholder="ชื่อลูกค้า"></div><div class="field"><label for="wPhone">เบอร์โทรศัพท์</label><input id="wPhone" inputmode="tel" placeholder="เบอร์โทรศัพท์"></div></div><div class="row"><div class="field"><label>อัตราค่ากิจกรรม</label><div class="notice" style="margin:0">เริ่มต้น 99 บาท / คน / ชั่วโมง<br>คิดตามเวลาทำกิจกรรมจริง</div></div><div class="field"><label for="wPeople">จำนวนคน</label><select id="wPeople"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div></div><div class="row"><div class="field"><label for="wTable">โต๊ะ</label><select id="wTable"><option value="โต๊ะ 1">โต๊ะ 1</option><option value="โต๊ะ 2">โต๊ะ 2</option><option value="โต๊ะ 3">โต๊ะ 3</option><option value="โต๊ะ 4">โต๊ะ 4</option><option value="โต๊ะ 5">โต๊ะ 5</option><option value="โต๊ะ 6">โต๊ะ 6</option></select></div><div class="field"><label for="wDuration">เวลาเป้าหมายสำหรับแสดงตัวจับเวลา (นาที)</label><input id="wDuration" type="number" min="10" max="720" step="5" value="60"></div></div><button class="btn" id="walkinBtn">เริ่มกิจกรรมและบันทึก Walk-in</button></div>
-<h2 style="text-align:left">รายการจองและกิจกรรมที่กำลังดำเนินอยู่</h2><div id="bookingList" class="booking-list"></div><h2 style="text-align:left">ประวัติที่เสร็จสิ้น / ยกเลิก</h2><div id="historyList"></div>
+<h2 style="text-align:left">รายการจองและกิจกรรมที่กำลังดำเนินอยู่</h2><div id="bookingList" class="booking-list"></div><div class="panel hidden" id="eventAdminNav">
+  <div class="topbar">
+    <div><h3 style="margin:0">Event Management</h3><div class="subtle">จัดการ Special Events สำหรับเจ้าของร้าน</div></div>
+    <button class="btn" id="openEventAdminBtn">จัดการ Events</button>
+  </div>
+</div>
+<section class="panel hidden" id="eventAdminPanel">
+  <div class="topbar"><h2 style="text-align:left;margin:0">จัดการ Special Events</h2><button class="btn secondary" id="closeEventAdminBtn">ปิด</button></div>
+  <div class="notice">สร้าง Event จากข้อมูลคอร์สได้ในขั้นตอนถัดไป ตอนนี้สามารถสร้าง Event และกำหนดรอบจองได้โดยตรง</div>
+  <form id="eventForm">
+    <input type="hidden" id="eventId">
+    <div class="row">
+      <div class="field"><label for="eventTitle">ชื่อ Event *</label><input id="eventTitle" required maxlength="160" placeholder="เช่น Candle Workshop"></div>
+      <div class="field"><label for="eventSlug">Slug ภาษาอังกฤษ *</label><input id="eventSlug" required maxlength="100" pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="candle-workshop"></div>
+    </div>
+    <div class="field"><label for="eventDescription">รายละเอียด</label><input id="eventDescription" maxlength="2000" placeholder="รายละเอียดกิจกรรม"></div>
+    <div class="field"><label for="eventCover">ลิงก์รูปภาพ (ถ้ามี)</label><input id="eventCover" type="url" placeholder="https://..."></div>
+    <div class="row">
+      <div class="field"><label for="eventPrice">ราคา / คน (บาท) *</label><input id="eventPrice" type="number" min="0" step="0.01" value="690" required></div>
+      <div class="field"><label for="eventDeposit">มัดจำ (%)</label><input id="eventDeposit" type="number" min="0" max="100" value="50" required></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="eventDuration">ระยะเวลา (นาที)</label><input id="eventDuration" type="number" min="1" value="120" required></div>
+      <div class="field"><label for="eventStatus">สถานะ</label><select id="eventStatus"><option value="draft">Draft</option><option value="published">Published</option><option value="closed">Closed</option><option value="archived">Archived</option></select></div>
+    </div>
+    <div class="actions"><button class="btn" type="submit" id="saveEventBtn">บันทึก Event</button><button class="btn secondary" type="button" id="resetEventBtn">ล้างฟอร์ม</button></div>
+  </form>
+  <hr style="border:0;border-top:1px solid var(--line);margin:20px 0">
+  <h3>รายการ Events</h3><div id="eventAdminList" class="booking-list"></div>
+  <div id="eventSessionPanel" class="panel hidden">
+    <h3 id="eventSessionTitle">จัดการรอบเวลา</h3>
+    <form id="eventSessionForm">
+      <div class="row">
+        <div class="field"><label for="eventSessionDate">วันที่</label><input id="eventSessionDate" type="date" required></div>
+        <div class="field"><label for="eventSessionCapacity">จำนวนที่นั่ง</label><input id="eventSessionCapacity" type="number" min="1" max="50" value="6" required></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="eventSessionStart">เวลาเริ่ม</label><input id="eventSessionStart" type="time" value="11:00" required></div>
+        <div class="field"><label for="eventSessionEnd">เวลาจบ</label><input id="eventSessionEnd" type="time" value="13:00" required></div>
+      </div>
+      <button class="btn" type="submit">เพิ่มรอบเวลา</button>
+    </form>
+    <div id="eventSessionList"></div>
+  </div>
+</section>
+<h2 style="text-align:left">ประวัติที่เสร็จสิ้น / ยกเลิก</h2><div id="historyList"></div>
 
 </section>
 </main><footer class="footer"><strong>ONCE A WEEK</strong><br>Hat Yai, Songkhla · MAKE • PLAY • CREATE</footer></div><div id="toast" class="toast hidden"></div>
@@ -81,9 +126,139 @@ async function act(action,id){
   await updateAction(id,action,null);
 }
 async function addWalkin(){const name=$('wName').value.trim();if(!name)return toast('กรุณากรอกชื่อลูกค้า');const btn=$('walkinBtn');btn.disabled=true;try{await rpc('staff_create_walkin',{p_staff_token:token,p_customer_name:name,p_customer_phone:$('wPhone').value.trim(),p_size:'Hourly',p_party_size:Number($('wPeople').value),p_duration_minutes:Number($('wDuration').value),p_table_name:$('wTable').value});$('wName').value='';$('wPhone').value='';await loadBookings();toast('เพิ่ม Walk-in และเริ่มจับเวลาแล้ว')}catch(e){console.error(e);toast('เพิ่ม Walk-in ไม่สำเร็จ: '+e.message)}finally{btn.disabled=false}}
-function showDashboard(){ $('loginView').classList.add('hidden');$('dashboard').classList.remove('hidden');$('signedInAs').textContent='เข้าสู่ระบบในชื่อ '+staffName;loadBookings();clearInterval(refreshTimer);refreshTimer=setInterval(loadBookings,45000)}
+function showDashboard(){ checkEventOwner(); $('loginView').classList.add('hidden');$('dashboard').classList.remove('hidden');$('signedInAs').textContent='เข้าสู่ระบบในชื่อ '+staffName;loadBookings();clearInterval(refreshTimer);refreshTimer=setInterval(loadBookings,45000)}
 async function login(){const name=$('staffName').value.trim(),pin=$('pin').value.trim();if(!name||!/^\d{8}$/.test(pin))return $('loginMessage').textContent='กรุณากรอกชื่อและ PIN 8 หลัก';const btn=$('loginBtn');btn.disabled=true;$('loginMessage').textContent='กำลังตรวจสอบ PIN...';try{const data=await rpc('staff_login',{p_display_name:name,p_pin:pin});const row=Array.isArray(data)?data[0]:data;if(!row?.session_token){$('loginMessage').textContent=row?.message||'เข้าสู่ระบบไม่สำเร็จ';return}token=row.session_token;staffName=row.staff_name;sessionStorage.setItem(TOKEN_KEY,token);sessionStorage.setItem('ow_staff_name',staffName);$('pin').value='';showDashboard()}catch(e){console.error(e);$('loginMessage').textContent='เข้าสู่ระบบไม่สำเร็จ: '+e.message}finally{btn.disabled=false}}
 async function logout(callServer=true){clearInterval(refreshTimer);if(callServer&&token){try{await rpc('staff_logout',{p_staff_token:token})}catch(e){console.warn(e)}}token='';staffName='';bookings=[];sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem('ow_staff_name');$('dashboard').classList.add('hidden');$('loginView').classList.remove('hidden');$('loginMessage').textContent='ออกจากระบบแล้ว กรุณาใส่ PIN เพื่อเข้าสู่ระบบอีกครั้ง'}
+
+
+let isEventOwner=false;
+let adminEvents=[];
+let selectedEventForSessions=null;
+
+async function checkEventOwner(){
+  if(!token){isEventOwner=false;$('eventAdminNav').classList.add('hidden');return}
+  try{
+    const result=await rpc('staff_is_owner',{p_staff_token:token});
+    isEventOwner=result===true;
+  }catch(e){
+    console.warn('Owner permission check failed',e);
+    isEventOwner=false;
+  }
+  $('eventAdminNav').classList.toggle('hidden',!isEventOwner);
+}
+
+function resetEventForm(){
+  $('eventForm').reset();
+  $('eventId').value='';
+  $('eventPrice').value='690';
+  $('eventDeposit').value='50';
+  $('eventDuration').value='120';
+  $('eventStatus').value='draft';
+  $('saveEventBtn').textContent='บันทึก Event';
+}
+
+async function openEventAdmin(){
+  if(!isEventOwner)return toast('บัญชีนี้ไม่มีสิทธิ์จัดการ Event');
+  $('eventAdminPanel').classList.remove('hidden');
+  await loadAdminEvents();
+  $('eventAdminPanel').scrollIntoView({behavior:'smooth'});
+}
+
+async function loadAdminEvents(){
+  try{
+    adminEvents=await rpc('staff_event_list',{p_staff_token:token})||[];
+    $('eventAdminList').innerHTML=adminEvents.length?adminEvents.map(ev=>`
+      <article class="booking">
+        <h3>${esc(ev.title)}</h3>
+        <div class="meta">${esc(ev.slug)}<br>฿${Number(ev.price_per_person).toLocaleString('th-TH')} / คน · มัดจำ ${Number(ev.deposit_percent)}% · ${Number(ev.duration_minutes)} นาที<br>สถานะ: ${esc(ev.status)}</div>
+        <div class="booking-actions">
+          <button class="smallbtn primary" data-event-edit="${ev.id}">แก้ไข</button>
+          <button class="smallbtn" data-event-sessions="${ev.id}">จัดการรอบ</button>
+          <button class="smallbtn" data-event-toggle="${ev.id}">${ev.status==='published'?'ปิดรับจอง':'เปิดรับจอง'}</button>
+        </div>
+      </article>`).join(''):'<div class="empty">ยังไม่มี Event</div>';
+    $('eventAdminList').querySelectorAll('[data-event-edit]').forEach(b=>b.onclick=()=>editAdminEvent(b.dataset.eventEdit));
+    $('eventAdminList').querySelectorAll('[data-event-sessions]').forEach(b=>b.onclick=()=>openEventSessions(b.dataset.eventSessions));
+    $('eventAdminList').querySelectorAll('[data-event-toggle]').forEach(b=>b.onclick=()=>toggleAdminEvent(b.dataset.eventToggle));
+  }catch(e){toast('โหลด Events ไม่สำเร็จ: '+e.message)}
+}
+
+function editAdminEvent(id){
+  const ev=adminEvents.find(x=>x.id===id);if(!ev)return;
+  $('eventId').value=ev.id;$('eventTitle').value=ev.title||'';$('eventSlug').value=ev.slug||'';
+  $('eventDescription').value=ev.description||'';$('eventCover').value=ev.cover_url||'';
+  $('eventPrice').value=ev.price_per_person;$('eventDeposit').value=ev.deposit_percent;
+  $('eventDuration').value=ev.duration_minutes;$('eventStatus').value=ev.status;
+  $('saveEventBtn').textContent='บันทึกการแก้ไข';
+  $('eventForm').scrollIntoView({behavior:'smooth'});
+}
+
+async function saveAdminEvent(e){
+  e.preventDefault();if(!isEventOwner)return toast('ไม่มีสิทธิ์');
+  const slug=$('eventSlug').value.trim().toLowerCase();
+  if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))return toast('Slug ใช้ a-z, 0-9 และ - เท่านั้น');
+  const args={
+    p_staff_token:token,p_event_id:$('eventId').value||null,
+    p_slug:slug,p_title:$('eventTitle').value.trim(),
+    p_description:$('eventDescription').value.trim(),
+    p_cover_url:$('eventCover').value.trim()||null,
+    p_price_per_person:Number($('eventPrice').value),
+    p_deposit_percent:Number($('eventDeposit').value),
+    p_duration_minutes:Number($('eventDuration').value),
+    p_status:$('eventStatus').value
+  };
+  if(!args.p_title||args.p_price_per_person<0||args.p_deposit_percent<0||args.p_deposit_percent>100||args.p_duration_minutes<1)return toast('กรุณาตรวจสอบข้อมูล');
+  try{
+    await rpc('staff_event_save',args);
+    toast('บันทึก Event สำเร็จ');resetEventForm();await loadAdminEvents();
+  }catch(err){toast('บันทึกไม่สำเร็จ: '+err.message)}
+}
+
+async function toggleAdminEvent(id){
+  const ev=adminEvents.find(x=>x.id===id);if(!ev)return;
+  const next=ev.status==='published'?'closed':'published';
+  if(next==='published'){
+    const sessions=await rpc('staff_event_list_sessions',{p_staff_token:token,p_event_id:id});
+    if(!sessions?.some(s=>s.status==='open'&&Number(s.capacity)>Number(s.booked_seats)))return toast('ต้องมีรอบที่ยังมีที่นั่งว่างก่อนเปิดรับจอง');
+  }
+  try{await rpc('staff_event_set_status',{p_staff_token:token,p_event_id:id,p_status:next});await loadAdminEvents();toast('อัปเดตสถานะแล้ว')}
+  catch(e){toast('เปลี่ยนสถานะไม่สำเร็จ: '+e.message)}
+}
+
+async function openEventSessions(id){
+  const ev=adminEvents.find(x=>x.id===id);if(!ev)return;
+  selectedEventForSessions=id;$('eventSessionTitle').textContent='รอบเวลา: '+ev.title;
+  $('eventSessionPanel').classList.remove('hidden');await loadAdminSessions();
+  $('eventSessionPanel').scrollIntoView({behavior:'smooth'});
+}
+
+async function loadAdminSessions(){
+  try{
+    const rows=await rpc('staff_event_list_sessions',{p_staff_token:token,p_event_id:selectedEventForSessions})||[];
+    $('eventSessionList').innerHTML=rows.length?rows.map(s=>`
+      <div class="booking" style="margin-top:9px">
+        <b>${esc(s.session_date)}</b> · ${esc(String(s.start_time).slice(0,5))}–${esc(String(s.end_time).slice(0,5))}
+        <div class="meta">${s.booked_seats}/${s.capacity} ที่นั่ง · ${esc(s.status)}</div>
+        ${s.status==='open'?`<button class="smallbtn" data-session-close="${s.id}">ปิดรอบ</button>`:''}
+      </div>`).join(''):'<div class="empty">ยังไม่มีรอบเวลา</div>';
+    $('eventSessionList').querySelectorAll('[data-session-close]').forEach(b=>b.onclick=()=>setAdminSessionStatus(b.dataset.sessionClose,'closed'));
+  }catch(e){toast('โหลดรอบเวลาไม่สำเร็จ: '+e.message)}
+}
+
+async function addAdminSession(e){
+  e.preventDefault();if(!selectedEventForSessions)return;
+  const date=$('eventSessionDate').value,start=$('eventSessionStart').value,end=$('eventSessionEnd').value,capacity=Number($('eventSessionCapacity').value);
+  if(!date||!start||!end||end<=start||capacity<1)return toast('ตรวจสอบวันที่ เวลา และจำนวนที่นั่ง');
+  try{
+    await rpc('staff_event_add_session',{p_staff_token:token,p_event_id:selectedEventForSessions,p_session_date:date,p_start_time:start,p_end_time:end,p_capacity:capacity});
+    toast('เพิ่มรอบเวลาแล้ว');await loadAdminSessions();
+  }catch(e){toast('เพิ่มรอบไม่สำเร็จ: '+e.message)}
+}
+
+async function setAdminSessionStatus(id,status){
+  try{await rpc('staff_event_set_session_status',{p_staff_token:token,p_session_id:id,p_status:status});await loadAdminSessions();toast('อัปเดตรอบแล้ว')}
+  catch(e){toast('อัปเดตรอบไม่สำเร็จ: '+e.message)}
+}
 
 $('loginBtn').onclick=login;$('pin').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('logoutBtn').onclick=()=>logout();$('refreshBtn').onclick=loadBookings;$('walkinBtn').onclick=addWalkin;
 
