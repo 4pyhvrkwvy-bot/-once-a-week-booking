@@ -15,9 +15,13 @@
 <h2 style="text-align:left">รายการจองและกิจกรรมที่กำลังดำเนินอยู่</h2><div id="bookingList" class="booking-list"></div><div class="panel hidden" id="eventAdminNav">
   <div class="topbar">
     <div><h3 style="margin:0">Event Management</h3><div class="subtle">จัดการ Special Events สำหรับเจ้าของร้าน</div></div>
-    <button class="btn" id="openEventAdminBtn">จัดการ Events</button>
+    <div class="inline-actions"><button class="btn secondary" id="openPaymentReviewsBtn">ตรวจสอบสลิปมัดจำ</button><button class="btn" id="openEventAdminBtn">จัดการ Events</button></div>
   </div>
 </div>
+<section class="panel hidden" id="eventPaymentReviewPanel">
+  <div class="topbar"><div><h3 style="margin:0">ตรวจสอบสลิปมัดจำ</h3><div class="subtle">เฉพาะ Owner · อนุมัติหลังตรวจสอบยอดเงินเข้าบัญชีแล้วเท่านั้น</div></div><button class="btn secondary" id="refreshPaymentReviewsBtn">รีเฟรช</button></div>
+  <div id="eventPaymentReviewList" class="booking-list"><div class="empty">กำลังโหลดรายการ...</div></div>
+</section>
 <section class="panel hidden" id="eventAdminPanel">
   <div class="topbar"><h2 style="text-align:left;margin:0">จัดการ Special Events</h2><button class="btn secondary" id="closeEventAdminBtn">ปิด</button></div>
   <div class="notice">สร้าง Event จากข้อมูลคอร์สได้ในขั้นตอนถัดไป ตอนนี้สามารถสร้าง Event และกำหนดรอบจองได้โดยตรง</div>
@@ -268,6 +272,41 @@ $('pin').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
 $('logoutBtn').onclick=()=>logout();
 $('refreshBtn').onclick=loadBookings;
 $('walkinBtn').onclick=addWalkin;
+
+// Owner-only event deposit review queue.
+async function loadEventPaymentReviews(){
+  if(!isEventOwner)return toast('ไม่มีสิทธิ์ตรวจสอบสลิป');
+  const root=$('eventPaymentReviewList');root.innerHTML='<div class="empty">กำลังโหลดรายการ...</div>';
+  try{
+    const rows=await rpc('staff_event_pending_payments',{p_staff_token:token})||[];
+    if(!rows.length){root.innerHTML='<div class="empty">ไม่มีรายการรอตรวจสอบ</div>';return;}
+    root.innerHTML=rows.map(r=>`<article class="booking">
+      <h3>${esc(r.customer_name)} · ${Number(r.party_size)} คน</h3>
+      <div class="meta"><b>${esc(r.event_title)}</b><br>รหัสจอง ${esc(r.booking_code)}<br>${dateLabel(r.session_date)} · ${timeLabel(r.start_time)}–${timeLabel(r.end_time)} น.<br>โทร ${esc(r.customer_phone)}<br>ยอดรวม ${Number(r.total_amount).toLocaleString('th-TH')} บาท · มัดจำ <b>${Number(r.deposit_amount).toLocaleString('th-TH')} บาท</b></div>
+      <div class="booking-actions"><button class="smallbtn" data-proof-view="${esc(r.proof_path)}">ดูสลิป</button><button class="smallbtn primary" data-proof-approve="${r.booking_id}">อนุมัติและยืนยัน</button><button class="smallbtn" data-proof-reject="${r.booking_id}">ปฏิเสธสลิป</button></div>
+    </article>`).join('');
+    root.querySelectorAll('[data-proof-view]').forEach(b=>b.onclick=()=>openPaymentProof(b.dataset.proofView));
+    root.querySelectorAll('[data-proof-approve]').forEach(b=>b.onclick=()=>reviewEventPayment(b.dataset.proofApprove,'approve'));
+    root.querySelectorAll('[data-proof-reject]').forEach(b=>b.onclick=()=>reviewEventPayment(b.dataset.proofReject,'reject'));
+  }catch(e){console.error(e);root.innerHTML='<div class="empty">โหลดรายการไม่สำเร็จ: '+esc(e.message)+'</div>';}
+}
+async function openPaymentProof(path){
+  try{
+    const response=await fetch('/api/event-payment-proof',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path,token}),cache:'no-store'});const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'เปิดสลิปไม่สำเร็จ');
+    window.open(data.signedUrl,'_blank','noopener');
+  }catch(e){toast('เปิดสลิปไม่สำเร็จ: '+e.message);}
+}
+async function reviewEventPayment(id,decision){
+  let reason=null;
+  if(decision==='approve'&&!confirm('ตรวจสอบยอดเงินเข้าบัญชีแล้วใช่ไหม? ยืนยันการจองนี้หรือไม่'))return;
+  if(decision==='reject'){reason=prompt('ระบุเหตุผลที่ปฏิเสธสลิป (จะแจ้งให้ลูกค้าทราบ)');if(reason===null)return;}
+  try{
+    await rpc('staff_event_review_payment',{p_staff_token:token,p_booking_id:id,p_decision:decision,p_reason:reason});
+    toast(decision==='approve'?'อนุมัติและยืนยัน Booking แล้ว':'ปฏิเสธสลิปและคืนที่นั่งแล้ว');
+    await loadEventPaymentReviews();
+  }catch(e){toast('ดำเนินการไม่สำเร็จ: '+e.message);}
+}
 
 // Event Management controls — these bindings were missing in the previous build.
 $('openEventAdminBtn').addEventListener('click', openEventAdmin);
