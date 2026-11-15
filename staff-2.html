@@ -32,10 +32,19 @@
       <div class="field"><label for="eventSlug">Slug ภาษาอังกฤษ *</label><input id="eventSlug" required maxlength="100" pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="candle-workshop"></div>
     </div>
     <div class="field"><label for="eventDescription">รายละเอียด</label><input id="eventDescription" maxlength="2000" placeholder="รายละเอียดกิจกรรม"></div>
-    <div class="field"><label for="eventCover">ลิงก์รูปภาพ (ถ้ามี)</label><input id="eventCover" type="url" placeholder="https://..."></div>
+    <div class="field"><label>รูปภาพหน้าปก Event</label>
+      <input id="eventCover" type="hidden">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <img id="eventCoverPreview" alt="ตัวอย่างรูป Event" class="hidden" style="width:120px;height:90px;object-fit:cover;border-radius:10px;border:1px solid var(--line)">
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn secondary" type="button" id="openMediaLibraryBtn">เลือกรูปจากคลัง</button><button class="btn secondary" type="button" id="uploadMediaBtn">อัปโหลดรูปใหม่</button><button class="btn secondary" type="button" id="clearEventCoverBtn">ลบรูป</button></div>
+      </div>
+      <input id="eventMediaFile" type="file" accept="image/jpeg,image/png,image/webp" class="hidden">
+      <div id="eventMediaLibrary" class="panel hidden" style="margin-top:12px"><div class="topbar"><b>คลังรูปภาพ</b><button class="btn secondary" type="button" id="closeMediaLibraryBtn">ปิด</button></div><div id="eventMediaGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-top:12px"></div></div>
+      <div class="subtle">เลือกภาพเดิมจากคลัง หรืออัปโหลดภาพใหม่ได้ (JPG, PNG, WEBP ไม่เกิน 3 MB)</div>
+    </div>
     <div class="row">
       <div class="field"><label for="eventPrice">ราคา / คน (บาท) *</label><input id="eventPrice" type="number" min="0" step="0.01" value="690" required></div>
-      <div class="field"><label for="eventDeposit">มัดจำ (%)</label><input id="eventDeposit" type="number" min="0" max="100" value="50" required></div>
+      <div class="field"><label for="eventDeposit">เงินมัดจำต่อคน (บาท) *</label><input id="eventDeposit" type="number" min="0" step="0.01" required placeholder="กรอกจำนวนเงินมัดจำ"></div>
     </div>
     <div class="row">
       <div class="field"><label for="eventDuration">ระยะเวลา (นาที)</label><input id="eventDuration" type="number" min="1" value="120" required></div>
@@ -155,7 +164,8 @@ function resetEventForm(){
   $('eventForm').reset();
   $('eventId').value='';
   $('eventPrice').value='690';
-  $('eventDeposit').value='50';
+  $('eventDeposit').value='';
+  setEventCoverPreview('');
   $('eventDuration').value='120';
   $('eventStatus').value='draft';
   $('saveEventBtn').textContent='บันทึก Event';
@@ -174,7 +184,7 @@ async function loadAdminEvents(){
     $('eventAdminList').innerHTML=adminEvents.length?adminEvents.map(ev=>`
       <article class="booking">
         <h3>${esc(ev.title)}</h3>
-        <div class="meta">${esc(ev.slug)}<br>฿${Number(ev.price_per_person).toLocaleString('th-TH')} / คน · มัดจำ ${Number(ev.deposit_percent)}% · ${Number(ev.duration_minutes)} นาที<br>สถานะ: ${esc(ev.status)}</div>
+        <div class="meta">${esc(ev.slug)}<br>฿${Number(ev.price_per_person).toLocaleString('th-TH')} / คน · มัดจำ ${Number(ev.deposit_per_person||0).toLocaleString('th-TH')} บาท/คน · ${Number(ev.duration_minutes)} นาที<br>สถานะ: ${esc(ev.status)}</div>
         <div class="booking-actions">
           <button class="smallbtn primary" data-event-edit="${ev.id}">แก้ไข</button>
           <button class="smallbtn" data-event-sessions="${ev.id}">จัดการรอบ</button>
@@ -191,7 +201,7 @@ function editAdminEvent(id){
   const ev=adminEvents.find(x=>x.id===id);if(!ev)return;
   $('eventId').value=ev.id;$('eventTitle').value=ev.title||'';$('eventSlug').value=ev.slug||'';
   $('eventDescription').value=ev.description||'';$('eventCover').value=ev.cover_url||'';
-  $('eventPrice').value=ev.price_per_person;$('eventDeposit').value=ev.deposit_percent;
+  $('eventPrice').value=ev.price_per_person;$('eventDeposit').value=ev.deposit_per_person??'';setEventCoverPreview(ev.cover_url||'');
   $('eventDuration').value=ev.duration_minutes;$('eventStatus').value=ev.status;
   $('saveEventBtn').textContent='บันทึกการแก้ไข';
   $('eventForm').scrollIntoView({behavior:'smooth'});
@@ -207,11 +217,11 @@ async function saveAdminEvent(e){
     p_description:$('eventDescription').value.trim(),
     p_cover_url:$('eventCover').value.trim()||null,
     p_price_per_person:Number($('eventPrice').value),
-    p_deposit_percent:Number($('eventDeposit').value),
+    p_deposit_per_person:$('eventDeposit').value===''?null:Number($('eventDeposit').value),
     p_duration_minutes:Number($('eventDuration').value),
     p_status:$('eventStatus').value
   };
-  if(!args.p_title||args.p_price_per_person<0||args.p_deposit_percent<0||args.p_deposit_percent>100||args.p_duration_minutes<1)return toast('กรุณาตรวจสอบข้อมูล');
+  if(!args.p_title||args.p_price_per_person<0||args.p_deposit_per_person===null||args.p_deposit_per_person<0||args.p_deposit_per_person>args.p_price_per_person||args.p_duration_minutes<1)return toast('กรุณาตรวจสอบข้อมูล');
   const saveBtn=$('saveEventBtn');saveBtn.disabled=true;
   try{
     await rpc('staff_event_save',args);
@@ -265,6 +275,39 @@ async function setAdminSessionStatus(id,status){
   try{await rpc('staff_event_set_session_status',{p_staff_token:token,p_session_id:id,p_status:status});await loadAdminSessions();toast('อัปเดตรอบแล้ว')}
   catch(e){toast('อัปเดตรอบไม่สำเร็จ: '+e.message)}
 }
+
+// Owner-only Event image library. Upload/list requests are authorized server-side.
+function setEventCoverPreview(url){
+  $('eventCover').value=url||'';
+  const img=$('eventCoverPreview');
+  if(url){img.src=url;img.classList.remove('hidden')}else{img.removeAttribute('src');img.classList.add('hidden')}
+}
+async function mediaApi(action,extra={}){
+  const response=await fetch('/api/event-media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token,...extra}),cache:'no-store'});
+  const data=await response.json();if(!response.ok)throw new Error(data.error||'จัดการคลังรูปภาพไม่สำเร็จ');return data;
+}
+async function openEventMediaLibrary(){
+  if(!isEventOwner)return toast('ไม่มีสิทธิ์จัดการคลังรูปภาพ');
+  const panel=$('eventMediaLibrary'),grid=$('eventMediaGrid');panel.classList.remove('hidden');grid.innerHTML='<div class="empty">กำลังโหลดรูปภาพ...</div>';
+  try{const data=await mediaApi('list');const items=data.items||[];
+    grid.innerHTML=items.length?items.map(item=>`<button type="button" class="smallbtn" data-media-url="${esc(item.url)}" style="padding:6px;text-align:left"><img src="${esc(item.url)}" alt="" style="width:100%;height:95px;object-fit:cover;border-radius:8px"><span style="display:block;overflow-wrap:anywhere;font-size:11px">${esc(item.name)}</span></button>`).join(''):'<div class="empty">ยังไม่มีรูปในคลัง</div>';
+    grid.querySelectorAll('[data-media-url]').forEach(btn=>btn.onclick=()=>{setEventCoverPreview(btn.dataset.mediaUrl);panel.classList.add('hidden');toast('เลือกรูปภาพแล้ว')});
+  }catch(e){grid.innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+}
+async function uploadEventMedia(file){
+  if(!isEventOwner)return toast('ไม่มีสิทธิ์อัปโหลดรูปภาพ');
+  if(!file)return;if(!['image/jpeg','image/png','image/webp'].includes(file.type))return toast('รองรับเฉพาะ JPG, PNG และ WEBP');
+  if(file.size>3*1024*1024)return toast('รูปภาพต้องมีขนาดไม่เกิน 3 MB');
+  const reader=new FileReader();reader.onload=async()=>{
+    try{const base64=String(reader.result).split(',')[1];const data=await mediaApi('upload',{fileName:file.name,contentType:file.type,fileBase64:base64});setEventCoverPreview(data.url);$('eventMediaLibrary').classList.add('hidden');toast('อัปโหลดรูปภาพสำเร็จ')}
+    catch(e){toast('อัปโหลดไม่สำเร็จ: '+e.message)}
+  };reader.onerror=()=>toast('อ่านไฟล์รูปภาพไม่สำเร็จ');reader.readAsDataURL(file);
+}
+$('openMediaLibraryBtn').addEventListener('click',openEventMediaLibrary);
+$('closeMediaLibraryBtn').addEventListener('click',()=>$('eventMediaLibrary').classList.add('hidden'));
+$('uploadMediaBtn').addEventListener('click',()=>$('eventMediaFile').click());
+$('eventMediaFile').addEventListener('change',e=>{uploadEventMedia(e.target.files?.[0]);e.target.value=''});
+$('clearEventCoverBtn').addEventListener('click',()=>setEventCoverPreview(''));
 
 // Core Staff Workspace controls
 $('loginBtn').onclick=login;
