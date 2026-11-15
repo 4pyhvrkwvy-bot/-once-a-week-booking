@@ -60,14 +60,14 @@ function eventDateLabel(d){return new Date(d+'T12:00:00').toLocaleDateString('th
 async function loadSpecialEvents(){
   const root=$('eventCards');root.innerHTML='';
   try{
-    const {data,error}=await supabaseClient.from('events').select('id,slug,title,description,cover_url,price_per_person,deposit_percent,duration_minutes,status').eq('status','published').order('created_at',{ascending:false});
+    const {data,error}=await supabaseClient.from('events').select('id,slug,title,description,cover_url,price_per_person,deposit_per_person,duration_minutes,status').eq('status','published').order('created_at',{ascending:false});
     if(error)throw error;publishedEvents=data||[];
     document.querySelectorAll('[data-event-card]').forEach(x=>x.remove());
     const list=$('activities');
     publishedEvents.forEach(e=>{
       const card=document.createElement('button');card.type='button';card.className='activity';card.dataset.eventCard=e.id;
       const icon=e.cover_url?`<img src="${escapeHtml(e.cover_url)}" alt="" style="width:50px;height:50px;object-fit:cover;border-radius:50%">`:'<span class="art">🕯️</span>';
-      card.innerHTML=`${icon}<span><strong>${escapeHtml(e.title)}</strong><small>${escapeHtml(e.description||'Special Workshop')}</small><small>กดเพื่อดูรายละเอียดกิจกรรม</small><span class="price">${eventMoney(e.price_per_person)} / คน · มัดจำ ${Number(e.deposit_percent)}%</span></span>`;
+      card.innerHTML=`${icon}<span><strong>${escapeHtml(e.title)}</strong><small>${escapeHtml(e.description||'Special Workshop')}</small><small>กดเพื่อดูรายละเอียดกิจกรรม</small><span class="price">${eventMoney(e.price_per_person)} / คน · ${e.deposit_per_person==null?'ยังไม่กำหนดมัดจำ':'มัดจำ '+eventMoney(e.deposit_per_person)+' / คน'}</span></span>`;
       card.addEventListener('click',()=>selectEventCard(e.id,card));list.appendChild(card);
     });
     root.innerHTML=publishedEvents.length?'โหลด Event แล้ว':'ยังไม่มี Special Event ที่เปิดรับจอง';
@@ -81,16 +81,17 @@ function selectEventCard(id,card){
   $('eventDetailDescription').textContent=ev.description||'กิจกรรมพิเศษจาก Once a Week';
   $('eventDetailPrice').textContent=eventMoney(ev.price_per_person)+' / คน';
   $('eventDetailDuration').textContent=Math.round(Number(ev.duration_minutes||120)/60*10)/10+' ชั่วโมง';
-  $('eventDetailDeposit').textContent='มัดจำ '+Number(ev.deposit_percent??50)+'%';
+  $('eventDetailDeposit').textContent=ev.deposit_per_person==null?'ยังไม่กำหนดเงินมัดจำ':'มัดจำ '+eventMoney(ev.deposit_per_person)+' / คน';
   $('eventDetailChoose').onclick=()=>openEventBooking(id);
   $('next2').disabled=true;
   $('eventDetailPanel').scrollIntoView({behavior:'smooth',block:'start'});
 }
 async function openEventBooking(id){selectedEvent=publishedEvents.find(e=>e.id===id);if(!selectedEvent)return;const panel=$('eventBookingPanel');$('customer').querySelector('[data-step=1]').appendChild(panel);panel.classList.remove('hidden');$('eventBookingTitle').textContent=selectedEvent.title;$('eventBookingDescription').textContent=selectedEvent.description||'';$('eventResult').classList.remove('show');$('eventDate').innerHTML='<option value="">กำลังโหลดรอบ...</option>';panel.classList.remove('hidden');panel.scrollIntoView({behavior:'smooth',block:'start'});try{await supabaseClient.rpc('expire_pending_event_bookings');const {data,error}=await supabaseClient.from('event_sessions').select('id,session_date,start_time,end_time,capacity,booked_seats,status').eq('event_id',id).eq('status','open').gte('session_date',isoToday()).order('session_date').order('start_time');if(error)throw error;const available=(data||[]).filter(s=>Number(s.capacity)-Number(s.booked_seats)>=1);$('eventDate').innerHTML='<option value="">เลือกวันที่และเวลา</option>'+available.map(s=>`<option value="${s.id}" data-price="${selectedEvent.price_per_person}" data-capacity="${Number(s.capacity)-Number(s.booked_seats)}">${eventDateLabel(s.session_date)} · ${String(s.start_time).slice(0,5)}–${String(s.end_time).slice(0,5)} น. · เหลือ ${Number(s.capacity)-Number(s.booked_seats)} ที่</option>`).join('');if(!available.length)$('eventDate').innerHTML='<option value="">ไม่มีรอบว่างในขณะนี้</option>';updateEventSummary();}catch(err){console.error(err);$('eventDate').innerHTML='<option value="">โหลดรอบไม่สำเร็จ</option>';}}
-function updateEventSummary(){if(!selectedEvent)return;const n=Number($('eventPeople').value||1),total=Number(selectedEvent.price_per_person)*n,deposit=total*Number(selectedEvent.deposit_percent??50)/100;$('eventPriceSummary').innerHTML=`<div class="summary-line"><span>ราคารวม</span><strong>${eventMoney(total)}</strong></div><div class="summary-line"><span>มัดจำ ${Number(selectedEvent.deposit_percent??50)}%</span><strong>${eventMoney(deposit)}</strong></div><div class="summary-line"><span>ชำระส่วนที่เหลือ</span><strong>${eventMoney(total-deposit)}</strong></div>`;}
+function updateEventSummary(){if(!selectedEvent)return;const n=Number($('eventPeople').value||1),total=Number(selectedEvent.price_per_person)*n,hasDeposit=selectedEvent.deposit_per_person!=null,deposit=hasDeposit?Number(selectedEvent.deposit_per_person)*n:0;$('eventPriceSummary').innerHTML=`<div class="summary-line"><span>ราคารวม</span><strong>${eventMoney(total)}</strong></div><div class="summary-line"><span>เงินมัดจำ</span><strong>${hasDeposit?eventMoney(selectedEvent.deposit_per_person)+' × '+n+' คน = '+eventMoney(deposit):'ยังไม่กำหนด'}</strong></div><div class="summary-line"><span>ชำระส่วนที่เหลือ</span><strong>${hasDeposit?eventMoney(total-deposit):'—'}</strong></div>`;}
 $('eventPeople').addEventListener('change',updateEventSummary);$('eventDate').addEventListener('change',updateEventSummary);$('eventCancel').onclick=()=>{$('eventBookingPanel').classList.add('hidden');$('eventPaymentPanel').classList.add('hidden');$('eventConfirm').classList.remove('hidden');$('eventSlip').value='';$('eventResult').classList.remove('show');activeEventBooking=null;selectedEvent=null};let activeEventBooking=null;
 $('eventConfirm').onclick=async()=>{
   if(!selectedEvent)return;
+  if(selectedEvent.deposit_per_person==null||!Number.isFinite(Number(selectedEvent.deposit_per_person))||Number(selectedEvent.deposit_per_person)<0||Number(selectedEvent.deposit_per_person)>Number(selectedEvent.price_per_person))return toast('กิจกรรมนี้ยังไม่ได้กำหนดเงินมัดจำ กรุณาติดต่อร้าน');
   if(activeEventBooking)return toast('มีรายการจองรอแนบสลิปอยู่แล้ว');
   const sessionId=$('eventDate').value,name=$('eventName').value.trim(),phone=$('eventPhone').value.trim(),people=Number($('eventPeople').value);
   if(!sessionId)return toast('กรุณาเลือกรอบเวลา');
