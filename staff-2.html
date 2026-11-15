@@ -24,14 +24,30 @@
 </section>
 <section class="panel hidden" id="eventAdminPanel">
   <div class="topbar"><h2 style="text-align:left;margin:0">จัดการ Special Events</h2><button class="btn secondary" id="closeEventAdminBtn">ปิด</button></div>
-  <div class="notice">สร้าง Event จากข้อมูลคอร์สได้ในขั้นตอนถัดไป ตอนนี้สามารถสร้าง Event และกำหนดรอบจองได้โดยตรง</div>
+  <div class="notice">จัดการรายละเอียดที่ลูกค้าจะเห็นได้จากส่วนนี้ โดยข้อมูล 4 ช่องจะแสดงในหน้า Booking อัตโนมัติ</div>
+  <section class="panel" style="background:#fff;border:1px solid var(--line)">
+    <h3 style="margin-top:0">รายละเอียด Regular Workshop</h3>
+    <div class="field"><label for="regularWorkshopSelect">เลือก Workshop</label><select id="regularWorkshopSelect"><option value="">กำลังโหลดรายการ...</option></select></div>
+    <div class="field"><label for="regularWorkshopIntro">รายละเอียดโดยย่อ</label><textarea id="regularWorkshopIntro" rows="2" maxlength="2000" placeholder="คำอธิบายสั้น ๆ ที่แสดงใต้ชื่อกิจกรรม"></textarea></div>
+    <div class="field"><label for="regularActivityMethod">วิธีทำกิจกรรม</label><textarea id="regularActivityMethod" rows="3" maxlength="3000" placeholder="อธิบายขั้นตอนหรือวิธีทำกิจกรรม"></textarea></div>
+    <div class="field"><label for="regularIncludedItems">สิ่งที่รวมในกิจกรรม</label><textarea id="regularIncludedItems" rows="3" maxlength="3000" placeholder="ระบุวัสดุ อุปกรณ์ หรือของที่ลูกค้าจะได้รับ"></textarea></div>
+    <div class="field"><label for="regularLocationDetails">สถานที่</label><textarea id="regularLocationDetails" rows="2" maxlength="1500" placeholder="ระบุสถานที่จัดกิจกรรม"></textarea></div>
+    <div class="field"><label for="regularDurationDetails">ระยะเวลา (รายละเอียดที่แสดงให้ลูกค้า)</label><textarea id="regularDurationDetails" rows="2" maxlength="1500" placeholder="อธิบายระยะเวลาและเงื่อนไข"></textarea></div>
+    <button type="button" class="btn" id="saveRegularWorkshopDetailsBtn">บันทึกรายละเอียด Workshop</button>
+  </section>
   <form id="eventForm">
     <input type="hidden" id="eventId">
     <div class="row">
       <div class="field"><label for="eventTitle">ชื่อ Event *</label><input id="eventTitle" required maxlength="160" placeholder="เช่น Candle Workshop"></div>
       <div class="field"><label for="eventSlug">Slug ภาษาอังกฤษ *</label><input id="eventSlug" required maxlength="100" pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="candle-workshop"></div>
     </div>
-    <div class="field"><label for="eventDescription">รายละเอียด</label><input id="eventDescription" maxlength="2000" placeholder="รายละเอียดกิจกรรม"></div>
+    <div class="field"><label for="eventDescription">รายละเอียดโดยย่อ</label><input id="eventDescription" maxlength="2000" placeholder="รายละเอียดกิจกรรมโดยย่อ"></div>
+    <div class="panel" style="margin:12px 0;background:#fff"><h3 style="margin-top:0">รายละเอียดกิจกรรม 4 ช่อง</h3>
+      <div class="field"><label for="eventActivityMethod">วิธีทำกิจกรรม</label><textarea id="eventActivityMethod" rows="3" maxlength="3000" placeholder="อธิบายขั้นตอนหรือวิธีทำกิจกรรม"></textarea></div>
+      <div class="field"><label for="eventIncludedItems">สิ่งที่รวมในกิจกรรม</label><textarea id="eventIncludedItems" rows="3" maxlength="3000" placeholder="ระบุวัสดุ อุปกรณ์ หรือของที่ลูกค้าจะได้รับ"></textarea></div>
+      <div class="field"><label for="eventLocationDetails">สถานที่</label><textarea id="eventLocationDetails" rows="2" maxlength="1500" placeholder="ระบุสถานที่จัดกิจกรรมและรายละเอียดการเดินทาง"></textarea></div>
+      <div class="field"><label for="eventDurationDetails">ระยะเวลา (รายละเอียดที่แสดงให้ลูกค้า)</label><textarea id="eventDurationDetails" rows="2" maxlength="1500" placeholder="เช่น ใช้เวลาประมาณ 3 ชั่วโมง รวมเวลาเลือกอุปกรณ์และตกแต่ง"></textarea></div>
+    </div>
     <div class="field"><label>รูปภาพหน้าปก Event</label>
       <input id="eventCover" type="hidden">
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -187,7 +203,7 @@ function resetEventForm(){
 async function openEventAdmin(){
   if(!isEventOwner)return toast('บัญชีนี้ไม่มีสิทธิ์จัดการ Event');
   $('eventAdminPanel').classList.remove('hidden');
-  await loadAdminEvents();
+  await Promise.all([loadAdminEvents(),loadRegularWorkshopDetails()]);
   $('eventAdminPanel').scrollIntoView({behavior:'smooth'});
 }
 
@@ -214,6 +230,7 @@ function editAdminEvent(id){
   const ev=adminEvents.find(x=>x.id===id);if(!ev)return;
   $('eventId').value=ev.id;$('eventTitle').value=ev.title||'';$('eventSlug').value=ev.slug||'';
   $('eventDescription').value=ev.description||'';$('eventCover').value=ev.cover_url||'';
+  $('eventActivityMethod').value=ev.activity_method||'';$('eventIncludedItems').value=ev.included_items||'';$('eventLocationDetails').value=ev.location_details||'';$('eventDurationDetails').value=ev.duration_details||'';
   $('eventPrice').value=ev.price_per_person;$('eventDeposit').value=ev.deposit_per_person??'';setEventCoverPreview(ev.cover_url||'');
   $('eventDuration').value=ev.duration_minutes;$('eventStatus').value=ev.status;
   $('saveEventBtn').textContent='บันทึกการแก้ไข';
@@ -237,7 +254,8 @@ async function saveAdminEvent(e){
   if(!args.p_title||args.p_price_per_person<0||args.p_deposit_per_person===null||args.p_deposit_per_person<0||args.p_deposit_per_person>args.p_price_per_person||args.p_duration_minutes<1)return toast('กรุณาตรวจสอบข้อมูล');
   const saveBtn=$('saveEventBtn');saveBtn.disabled=true;
   try{
-    await rpc('staff_event_save',args);
+    const savedId=await rpc('staff_event_save',args);
+    await rpc('staff_event_details_save',{p_staff_token:token,p_event_id:savedId||args.p_event_id,p_activity_method:$('eventActivityMethod').value.trim(),p_included_items:$('eventIncludedItems').value.trim(),p_location_details:$('eventLocationDetails').value.trim(),p_duration_details:$('eventDurationDetails').value.trim()});
     toast('บันทึก Event สำเร็จ');resetEventForm();await loadAdminEvents();
   }catch(err){toast('บันทึกไม่สำเร็จ: '+err.message)}
   finally{saveBtn.disabled=false}
@@ -331,6 +349,33 @@ async function setAdminSessionStatus(id,status){
   try{await rpc('staff_event_set_session_status',{p_staff_token:token,p_session_id:id,p_status:status});await loadAdminSessions();toast('อัปเดตรอบแล้ว')}
   catch(e){toast('อัปเดตรอบไม่สำเร็จ: '+e.message)}
 }
+
+// Owner-only Regular Workshop detail editor. Four detail fields are stored in Supabase.
+let regularWorkshops=[];
+async function loadRegularWorkshopDetails(){
+  if(!isEventOwner)return;
+  try{
+    regularWorkshops=await rpc('staff_workshop_details_list',{p_staff_token:token})||[];
+    const select=$('regularWorkshopSelect');
+    select.innerHTML=regularWorkshops.length?regularWorkshops.map(w=>`<option value="${esc(w.id)}">${esc(w.name)}</option>`).join(''):'<option value="">ไม่พบ Workshop</option>';
+    if(regularWorkshops.length){select.value=regularWorkshops[0].id;fillRegularWorkshopDetails(select.value)}
+  }catch(e){$('regularWorkshopSelect').innerHTML='<option value="">โหลดรายการไม่สำเร็จ</option>';toast('โหลดรายละเอียด Workshop ไม่สำเร็จ: '+e.message)}
+}
+function fillRegularWorkshopDetails(id){
+  const w=regularWorkshops.find(x=>x.id===id);if(!w)return;
+  $('regularWorkshopIntro').value=w.description||'';$('regularActivityMethod').value=w.activity_method||'';$('regularIncludedItems').value=w.included_items||'';$('regularLocationDetails').value=w.location_details||'';$('regularDurationDetails').value=w.duration_details||'';
+}
+async function saveRegularWorkshopDetails(){
+  if(!isEventOwner)return toast('ไม่มีสิทธิ์แก้ไข Workshop');
+  const id=$('regularWorkshopSelect').value;if(!id)return toast('ไม่พบ Workshop ที่เลือก');
+  const btn=$('saveRegularWorkshopDetailsBtn');btn.disabled=true;
+  try{
+    await rpc('staff_workshop_details_save',{p_staff_token:token,p_workshop_id:id,p_description:$('regularWorkshopIntro').value.trim(),p_activity_method:$('regularActivityMethod').value.trim(),p_included_items:$('regularIncludedItems').value.trim(),p_location_details:$('regularLocationDetails').value.trim(),p_duration_details:$('regularDurationDetails').value.trim()});
+    toast('บันทึกรายละเอียด Workshop สำเร็จ');await loadRegularWorkshopDetails();
+  }catch(e){toast('บันทึกไม่สำเร็จ: '+e.message)}finally{btn.disabled=false}
+}
+$('regularWorkshopSelect').addEventListener('change',e=>fillRegularWorkshopDetails(e.target.value));
+$('saveRegularWorkshopDetailsBtn').addEventListener('click',saveRegularWorkshopDetails);
 
 // Owner-only Event image library. Upload/list requests are authorized server-side.
 function setEventCoverPreview(url){
