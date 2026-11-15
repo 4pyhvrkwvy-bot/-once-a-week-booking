@@ -56,16 +56,29 @@
   <h3>รายการ Events</h3><div id="eventAdminList" class="booking-list"></div>
   <div id="eventSessionPanel" class="panel hidden">
     <h3 id="eventSessionTitle">จัดการรอบเวลา</h3>
+    <div class="notice">กำหนดช่วงวันที่และเวลาของแต่ละรอบ ระบบจะสร้างรอบให้ทุกวันที่เลือกโดยอัตโนมัติ สามารถเพิ่มหลายช่วงเวลาในหนึ่งวัน และแก้ไข/ปิดรอบเป็นรายวันได้</div>
     <form id="eventSessionForm">
       <div class="row">
-        <div class="field"><label for="eventSessionDate">วันที่</label><input id="eventSessionDate" type="date" required></div>
-        <div class="field"><label for="eventSessionCapacity">จำนวนที่นั่ง</label><input id="eventSessionCapacity" type="number" min="1" max="50" value="6" required></div>
+        <div class="field"><label for="eventSessionFrom">วันที่เริ่มต้น *</label><input id="eventSessionFrom" type="date" required></div>
+        <div class="field"><label for="eventSessionTo">วันที่สิ้นสุด *</label><input id="eventSessionTo" type="date" required></div>
       </div>
-      <div class="row">
-        <div class="field"><label for="eventSessionStart">เวลาเริ่ม</label><input id="eventSessionStart" type="time" value="11:00" required></div>
-        <div class="field"><label for="eventSessionEnd">เวลาจบ</label><input id="eventSessionEnd" type="time" value="13:00" required></div>
+      <div class="field">
+        <label>วันที่เปิดรับจอง</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <label class="smallbtn"><input type="checkbox" class="event-weekday" value="1" checked> จันทร์</label>
+          <label class="smallbtn"><input type="checkbox" class="event-weekday" value="2" checked> อังคาร</label>
+          <label class="smallbtn"><input type="checkbox" class="event-weekday" value="3" checked> พุธ</label>
+          <label class="smallbtn"><input type="checkbox" class="event-weekday" value="4" checked> พฤหัสบดี</label>
+          <label class="smallbtn"><input type="checkbox" class="event-weekday" value="5" checked> ศุกร์</label>
+          <label class="smallbtn"><input type="checkbox" class="event-weekday" value="6" checked> เสาร์</label>
+          <label class="smallbtn"><input type="checkbox" class="event-weekday" value="0" checked> อาทิตย์</label>
+        </div>
+        <div class="subtle">เลือกเฉพาะวันที่ต้องการเปิดรอบ หากเลือกครบจะสร้างรอบทุกวันในช่วงวันที่กำหนด</div>
       </div>
-      <button class="btn" type="submit">เพิ่มรอบเวลา</button>
+      <div class="topbar" style="margin:14px 0 8px"><b>ช่วงเวลาในแต่ละวัน</b><button class="btn secondary" type="button" id="addEventTimeSlotBtn">+ เพิ่มช่วงเวลา</button></div>
+      <div id="eventTimeSlots"></div>
+      <div class="notice" id="eventSchedulePreview">เลือกช่วงวันที่เพื่อดูจำนวนรอบที่จะสร้าง</div>
+      <div class="actions"><button class="btn" type="submit" id="generateEventSessionsBtn">สร้างรอบอัตโนมัติ</button><button class="btn secondary" type="button" id="resetEventScheduleBtn">ล้างกำหนดการ</button></div>
     </form>
     <div id="eventSessionList"></div>
   </div>
@@ -243,7 +256,7 @@ async function toggleAdminEvent(id){
 
 async function openEventSessions(id){
   const ev=adminEvents.find(x=>x.id===id);if(!ev)return;
-  selectedEventForSessions=id;$('eventSessionTitle').textContent='รอบเวลา: '+ev.title;
+  selectedEventForSessions=id;$('eventSessionTitle').textContent='รอบเวลา: '+ev.title;$('eventSessionFrom').min=todayISO();$('eventSessionTo').min=todayISO();$('eventSessionFrom').onchange=()=>{$('eventSessionTo').min=$('eventSessionFrom').value;updateEventSchedulePreview()};
   $('eventSessionPanel').classList.remove('hidden');await loadAdminSessions();
   $('eventSessionPanel').scrollIntoView({behavior:'smooth'});
 }
@@ -261,16 +274,59 @@ async function loadAdminSessions(){
   }catch(e){toast('โหลดรอบเวลาไม่สำเร็จ: '+e.message)}
 }
 
+function addEventTimeSlot(start='11:00',end='13:00',capacity=6){
+  const wrap=document.createElement('div');wrap.className='row event-time-slot';wrap.style.cssText='align-items:end;padding:10px;background:#fff;border:1px solid var(--line);border-radius:12px;margin:8px 0';
+  wrap.innerHTML=`<div class="field"><label>เวลาเริ่ม</label><input type="time" class="slot-start" value="${start}" required></div><div class="field"><label>เวลาสิ้นสุด</label><input type="time" class="slot-end" value="${end}" required></div><div class="field"><label>จำนวนที่นั่ง/รอบ</label><input type="number" class="slot-capacity" min="1" max="50" value="${capacity}" required></div><button class="smallbtn" type="button" data-remove-slot>ลบช่วงนี้</button>`;
+  $('eventTimeSlots').appendChild(wrap);
+  wrap.querySelector('[data-remove-slot]').onclick=()=>{wrap.remove();updateEventSchedulePreview()};
+  wrap.querySelectorAll('input').forEach(input=>input.addEventListener('change',updateEventSchedulePreview));
+  updateEventSchedulePreview();
+}
+function getSelectedEventWeekdays(){return [...document.querySelectorAll('.event-weekday:checked')].map(x=>Number(x.value))}
+function getEventScheduleDates(){
+  const from=$('eventSessionFrom').value,to=$('eventSessionTo').value,days=getSelectedEventWeekdays();
+  if(!from||!to||to<from||!days.length)return [];
+  const out=[];const cur=new Date(from+'T12:00:00'),last=new Date(to+'T12:00:00');
+  while(cur<=last){if(days.includes(cur.getDay()))out.push(`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`);cur.setDate(cur.getDate()+1)}
+  return out;
+}
+function getEventTimeSlots(){return [...document.querySelectorAll('.event-time-slot')].map(el=>({start:el.querySelector('.slot-start').value,end:el.querySelector('.slot-end').value,capacity:Number(el.querySelector('.slot-capacity').value)}))}
+function updateEventSchedulePreview(){
+  const from=$('eventSessionFrom')?.value,to=$('eventSessionTo')?.value,dates=getEventScheduleDates(),slots=getEventTimeSlots();
+  const validSlots=slots.filter(x=>x.start&&x.end&&x.end>x.start&&x.capacity>=1&&x.capacity<=50);
+  const total=dates.length*validSlots.length;
+  if(!from||!to){$('eventSchedulePreview').textContent='เลือกวันที่เริ่มต้นและสิ้นสุดเพื่อดูจำนวนรอบที่จะสร้าง';return}
+  if(to<from){$('eventSchedulePreview').textContent='วันที่สิ้นสุดต้องไม่อยู่ก่อนวันที่เริ่มต้น';return}
+  $('eventSchedulePreview').textContent=`เลือก ${dates.length} วัน · ${validSlots.length} ช่วงเวลาต่อวัน · รวม ${total} รอบ${slots.length!==validSlots.length?' (มีช่วงเวลาที่ต้องตรวจสอบ)':''}`;
+}
 async function addAdminSession(e){
   e.preventDefault();if(!selectedEventForSessions)return;
-  const date=$('eventSessionDate').value,start=$('eventSessionStart').value,end=$('eventSessionEnd').value,capacity=Number($('eventSessionCapacity').value);
-  if(!date||!start||!end||end<=start||capacity<1)return toast('ตรวจสอบวันที่ เวลา และจำนวนที่นั่ง');
+  const dates=getEventScheduleDates(),slots=getEventTimeSlots(),ev=adminEvents.find(x=>x.id===selectedEventForSessions);
+  if(!dates.length)return toast('กรุณาเลือกช่วงวันที่และวันที่เปิดรับจองอย่างน้อย 1 วัน');
+  if(!slots.length||slots.some(x=>!x.start||!x.end||x.end<=x.start||x.capacity<1||x.capacity>50))return toast('ตรวจสอบเวลาและจำนวนที่นั่งทุกช่วง');
+  const duration=Number(ev?.duration_minutes)||0;
+  const invalid=slots.find(x=>{const [sh,sm]=x.start.split(':').map(Number),[eh,em]=x.end.split(':').map(Number);return (eh*60+em)-(sh*60+sm)!==duration});
+  if(invalid)return toast(`ระยะเวลาแต่ละรอบต้องเท่ากับ ${duration} นาที ตามที่ตั้งไว้ใน Event`);
+  const existing=await rpc('staff_event_list_sessions',{p_staff_token:token,p_event_id:selectedEventForSessions})||[];
+  const existingKeys=new Set(existing.map(x=>`${x.session_date}|${String(x.start_time).slice(0,5)}|${String(x.end_time).slice(0,5)}`));
+  const tasks=[];for(const date of dates)for(const slot of slots){const key=`${date}|${slot.start}|${slot.end}`;if(!existingKeys.has(key))tasks.push({date,...slot})}
+  if(!tasks.length)return toast('รอบตามกำหนดการนี้มีอยู่แล้วทั้งหมด');
+  if(!confirm(`ระบบจะสร้าง ${tasks.length} รอบ ใน ${dates.length} วัน ต้องการดำเนินการหรือไม่?`))return;
+  const btn=$('generateEventSessionsBtn');btn.disabled=true;let created=0,failed=[];
   try{
-    await rpc('staff_event_add_session',{p_staff_token:token,p_event_id:selectedEventForSessions,p_session_date:date,p_start_time:start,p_end_time:end,p_capacity:capacity});
-    toast('เพิ่มรอบเวลาแล้ว');$('eventSessionForm').reset();$('eventSessionStart').value='11:00';$('eventSessionEnd').value='13:00';$('eventSessionCapacity').value='6';await loadAdminSessions();
-  }catch(e){toast('เพิ่มรอบไม่สำเร็จ: '+e.message)}
+    for(const task of tasks){
+      try{await rpc('staff_event_add_session',{p_staff_token:token,p_event_id:selectedEventForSessions,p_session_date:task.date,p_start_time:task.start,p_end_time:task.end,p_capacity:task.capacity});created++}
+      catch(err){failed.push(`${task.date} ${task.start}–${task.end}: ${err.message}`)}
+    }
+    await loadAdminSessions();
+    if(failed.length){toast(`สร้างสำเร็จ ${created} รอบ · ไม่สำเร็จ ${failed.length} รอบ: ${failed[0]}`)}
+    else toast(`สร้างรอบสำเร็จ ${created} รอบ`);
+  }catch(err){toast('สร้างรอบไม่สำเร็จ: '+err.message)}
+  finally{btn.disabled=false}
 }
-
+function resetEventSchedule(){
+  $('eventSessionForm').reset();$('eventTimeSlots').innerHTML='';addEventTimeSlot('11:00','13:00',6);updateEventSchedulePreview();
+}
 async function setAdminSessionStatus(id,status){
   try{await rpc('staff_event_set_session_status',{p_staff_token:token,p_session_id:id,p_status:status});await loadAdminSessions();toast('อัปเดตรอบแล้ว')}
   catch(e){toast('อัปเดตรอบไม่สำเร็จ: '+e.message)}
@@ -359,6 +415,11 @@ $('closeEventAdminBtn').addEventListener('click', ()=>{
 });
 $('eventForm').addEventListener('submit', saveAdminEvent);
 $('eventSessionForm').addEventListener('submit', addAdminSession);
+$('addEventTimeSlotBtn').addEventListener('click',()=>{const rows=getEventTimeSlots(),last=rows[rows.length-1];let start='14:00';if(last?.end){const [h,m]=last.end.split(':').map(Number);const mins=h*60+m+60;start=`${String(Math.floor(mins/60)%24).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`}const ev=adminEvents.find(x=>x.id===selectedEventForSessions),duration=Number(ev?.duration_minutes)||120;const [sh,sm]=start.split(':').map(Number),endM=sh*60+sm+duration,end=`${String(Math.floor(endM/60)%24).padStart(2,'0')}:${String(endM%60).padStart(2,'0')}`;addEventTimeSlot(start,end,6)});
+$('resetEventScheduleBtn').addEventListener('click',resetEventSchedule);
+['eventSessionFrom','eventSessionTo'].forEach(id=>$(id).addEventListener('change',updateEventSchedulePreview));
+document.querySelectorAll('.event-weekday').forEach(el=>el.addEventListener('change',updateEventSchedulePreview));
+addEventTimeSlot('11:00','13:00',6);
 $('resetEventBtn').addEventListener('click', resetEventForm);
 
 // Keep event slug convenient to fill from the title, unless the owner has edited it.
