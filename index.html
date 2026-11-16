@@ -77,6 +77,8 @@ async function loadSpecialEvents(){
 }
 function selectEventCard(id,card){
   const ev=publishedEvents.find(x=>x.id===id);if(!ev)return;
+  // Keep the selected Special Event in the same state used by the booking flow.
+  selectedEvent=ev;
   chosen=null;slotChosen=null;document.querySelectorAll('.activity').forEach(x=>x.classList.toggle('selected',x===card));
   $('activityDetail').classList.add('hidden');$('eventDetailPanel').classList.remove('hidden');
   $('eventDetailTitle').textContent=ev.title;$('eventDetailSubtitle').textContent=ev.slug;
