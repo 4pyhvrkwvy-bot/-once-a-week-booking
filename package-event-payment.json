@@ -16,7 +16,6 @@ module.exports = async function handler(req, res) {
     const token = String(req.body?.token || '').trim();
     const path = String(req.body?.path || '').trim();
 
-    // Validate booking folder and uploaded filename
     const match = path.match(
       /^event-bookings\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/([A-Za-z0-9._-]{1,120})$/i
     );
@@ -40,14 +39,13 @@ module.exports = async function handler(req, res) {
 
     const baseUrl = supabaseUrl.replace(/\/+$/, '');
 
-    // Common headers for Supabase service-role requests
     const headers = {
       'Content-Type': 'application/json',
       'apikey': serviceKey,
       'Authorization': `Bearer ${serviceKey}`
     };
 
-    // 1. Verify Owner permission
+    // Verify Owner permission
     const ownerResponse = await fetch(
       `${baseUrl}/rest/v1/rpc/staff_is_owner`,
       {
@@ -86,7 +84,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // 2. Create signed URL from private Storage bucket
+    // Create signed URL from private Storage
     const encodedPath = path
       .split('/')
       .map(segment => encodeURIComponent(segment))
@@ -127,7 +125,6 @@ module.exports = async function handler(req, res) {
       throw new Error('ไม่พบ signedURL จาก Supabase Storage');
     }
 
-    // Supabase may return a relative or absolute signed URL
     let signedUrl;
 
     if (/^https?:\/\//i.test(storageData.signedURL)) {
