@@ -1,1 +1,164 @@
-{"dependencies":{"@supabase/supabase-js":"^2.49.0"}}
+
+// api/event-payment-proof.js
+// Uses native fetch. No @supabase/supabase-js dependency required.
+
+module.exports = async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({
+      error: 'Method not allowed'
+    });
+  }
+
+  try {
+    const token = String(req.body?.token || '').trim();
+    const path = String(req.body?.path || '').trim();
+
+    // Validate booking folder and uploaded filename
+    const match = path.match(
+      /^event-bookings\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/([A-Za-z0-9._-]{1,120})$/i
+    );
+
+    if (!token || !match) {
+      return res.status(400).json({
+        error: 'รูปแบบ path ของสลิปไม่ถูกต้อง',
+        stage: 'validate'
+      });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceKey) {
+      return res.status(500).json({
+        error: 'ไม่พบ SUPABASE_URL หรือ SUPABASE_SERVICE_ROLE_KEY',
+        stage: 'environment'
+      });
+    }
+
+    const baseUrl = supabaseUrl.replace(/\/+$/, '');
+
+    // Common headers for Supabase service-role requests
+    const headers = {
+      'Content-Type': 'application/json',
+      'apikey': serviceKey,
+      'Authorization': `Bearer ${serviceKey}`
+    };
+
+    // 1. Verify Owner permission
+    const ownerResponse = await fetch(
+      `${baseUrl}/rest/v1/rpc/staff_is_owner`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          p_staff_token: token
+        })
+      }
+    );
+
+    const ownerText = await ownerResponse.text();
+
+    if (!ownerResponse.ok) {
+      console.error('Owner RPC error:', ownerText);
+
+      return res.status(403).json({
+        error: 'ตรวจสอบสิทธิ์ Owner ไม่สำเร็จ',
+        detail: ownerText,
+        stage: 'owner_check'
+      });
+    }
+
+    let allowed;
+
+    try {
+      allowed = JSON.parse(ownerText);
+    } catch {
+      throw new Error('Owner RPC ส่งข้อมูลกลับมาไม่ถูกต้อง');
+    }
+
+    if (allowed !== true) {
+      return res.status(403).json({
+        error: 'บัญชีนี้ไม่มีสิทธิ์ตรวจสอบสลิป',
+        stage: 'permission'
+      });
+    }
+
+    // 2. Create signed URL from private Storage bucket
+    const encodedPath = path
+      .split('/')
+      .map(segment => encodeURIComponent(segment))
+      .join('/');
+
+    const storageResponse = await fetch(
+      `${baseUrl}/storage/v1/object/sign/booking-payment-proofs/${encodedPath}`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          expiresIn: 120
+        })
+      }
+    );
+
+    const storageText = await storageResponse.text();
+
+    if (!storageResponse.ok) {
+      console.error('Storage signed URL error:', storageText);
+
+      return res.status(500).json({
+        error: 'สร้างลิงก์สลิปไม่สำเร็จ',
+        detail: storageText,
+        stage: 'storage'
+      });
+    }
+
+    let storageData;
+
+    try {
+      storageData = JSON.parse(storageText);
+    } catch {
+      throw new Error('Storage ส่งข้อมูลกลับมาไม่ใช่ JSON');
+    }
+
+    if (!storageData.signedURL) {
+      throw new Error('ไม่พบ signedURL จาก Supabase Storage');
+    }
+
+    // Supabase may return a relative or absolute signed URL
+    let signedUrl;
+
+    if (/^https?:\/\//i.test(storageData.signedURL)) {
+      signedUrl = new URL(storageData.signedURL);
+    } else {
+      const relativePath = storageData.signedURL.startsWith('/')
+        ? storageData.signedURL
+        : `/${storageData.signedURL}`;
+
+      signedUrl = new URL(
+        relativePath,
+        `${baseUrl}/storage/v1/`
+      );
+    }
+
+    if (signedUrl.origin !== new URL(baseUrl).origin) {
+      throw new Error('Signed URL มีโดเมนไม่ตรงกับ Supabase');
+    }
+
+    return res.status(200).json({
+      success: true,
+      signedUrl: signedUrl.href
+    });
+
+  } catch (error) {
+    console.error('Payment proof API error:', error);
+
+    return res.status(500).json({
+      error: 'เกิดข้อผิดพลาดขณะเปิดสลิป',
+      detail: error.message || 'Unknown error',
+      stage: 'unexpected'
+    });
+  }
+};
