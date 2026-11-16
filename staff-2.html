@@ -41,7 +41,7 @@
   </div>
 </div>
 <section class="panel hidden" id="eventPaymentReviewPanel">
-  <div class="topbar"><div><h3 style="margin:0">ตรวจสอบสลิปมัดจำ</h3><div class="subtle">เฉพาะ Owner · อนุมัติหลังตรวจสอบยอดเงินเข้าบัญชีแล้วเท่านั้น</div></div><button class="btn secondary" id="refreshPaymentReviewsBtn">รีเฟรช</button></div>
+  <div class="topbar"><div><h3 style="margin:0">ตรวจสอบสลิปมัดจำ</h3><div class="subtle">เฉพาะ Owner · อนุมัติหลังตรวจสอบยอดเงินเข้าบัญชีแล้วเท่านั้น</div></div><div class="inline-actions"><button class="btn secondary" id="refreshPaymentReviewsBtn">รีเฟรช</button><button class="btn secondary" id="closePaymentReviewsBtn" type="button">ปิด</button></div></div>
   <div id="eventPaymentReviewList" class="booking-list"><div class="empty">กำลังโหลดรายการ...</div></div>
 </section>
 <section class="panel hidden" id="eventAdminPanel">
@@ -288,8 +288,8 @@ async function act(action,id){
   await updateAction(id,action,null);
 }
 async function addWalkin(){const name=$('wName').value.trim();if(!name)return toast('กรุณากรอกชื่อลูกค้า');const btn=$('walkinBtn');btn.disabled=true;try{await rpc('staff_create_walkin',{p_staff_token:token,p_customer_name:name,p_customer_phone:$('wPhone').value.trim(),p_size:'Hourly',p_party_size:Number($('wPeople').value),p_duration_minutes:Number($('wDuration').value),p_table_name:$('wTable').value});$('wName').value='';$('wPhone').value='';await loadBookings();toast('เพิ่ม Walk-in และเริ่มจับเวลาแล้ว')}catch(e){console.error(e);toast('เพิ่ม Walk-in ไม่สำเร็จ: '+e.message)}finally{btn.disabled=false}}
-function showDashboard(){ checkEventOwner(); $('loginView').classList.add('hidden');$('dashboard').classList.remove('hidden');$('signedInAs').textContent='เข้าสู่ระบบในชื่อ '+staffName;loadBookings();clearInterval(refreshTimer);refreshTimer=setInterval(()=>loadBookings(false),45000)}
-async function login(){const name=$('staffName').value.trim(),pin=$('pin').value.trim();if(!name||!/^\d{8}$/.test(pin))return $('loginMessage').textContent='กรุณากรอกชื่อและ PIN 8 หลัก';const btn=$('loginBtn');btn.disabled=true;$('loginMessage').textContent='กำลังตรวจสอบ PIN...';try{const data=await rpc('staff_login',{p_display_name:name,p_pin:pin});const row=Array.isArray(data)?data[0]:data;if(!row?.session_token){$('loginMessage').textContent=row?.message||'เข้าสู่ระบบไม่สำเร็จ';return}token=row.session_token;staffName=row.staff_name;sessionStorage.setItem(TOKEN_KEY,token);sessionStorage.setItem('ow_staff_name',staffName);$('pin').value='';showDashboard()}catch(e){console.error(e);$('loginMessage').textContent='เข้าสู่ระบบไม่สำเร็จ: '+e.message}finally{btn.disabled=false}}
+async function showDashboard(){ await checkEventOwner(); $('loginView').classList.add('hidden');$('dashboard').classList.remove('hidden');$('signedInAs').textContent='เข้าสู่ระบบในชื่อ '+staffName;await loadBookings();clearInterval(refreshTimer);refreshTimer=setInterval(()=>loadBookings(false),45000)}
+async function login(){const name=$('staffName').value.trim(),pin=$('pin').value.trim();if(!name||!/^\d{8}$/.test(pin))return $('loginMessage').textContent='กรุณากรอกชื่อและ PIN 8 หลัก';const btn=$('loginBtn');btn.disabled=true;$('loginMessage').textContent='กำลังตรวจสอบ PIN...';try{const data=await rpc('staff_login',{p_display_name:name,p_pin:pin});const row=Array.isArray(data)?data[0]:data;if(!row?.session_token){$('loginMessage').textContent=row?.message||'เข้าสู่ระบบไม่สำเร็จ';return}token=row.session_token;staffName=row.staff_name;sessionStorage.setItem(TOKEN_KEY,token);sessionStorage.setItem('ow_staff_name',staffName);$('pin').value='';await showDashboard()}catch(e){console.error(e);$('loginMessage').textContent='เข้าสู่ระบบไม่สำเร็จ: '+e.message}finally{btn.disabled=false}}
 async function logout(callServer=true){clearInterval(refreshTimer);if(callServer&&token){try{await rpc('staff_logout',{p_staff_token:token})}catch(e){console.warn(e)}}token='';staffName='';bookings=[];sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem('ow_staff_name');$('dashboard').classList.add('hidden');$('loginView').classList.remove('hidden');$('loginMessage').textContent='ออกจากระบบแล้ว กรุณาใส่ PIN เพื่อเข้าสู่ระบบอีกครั้ง'}
 
 
@@ -537,6 +537,17 @@ $('logoutBtn').onclick=()=>logout();
 $('refreshBtn').onclick=loadBookings;
 $('walkinBtn').onclick=addWalkin;
 
+// Owner-only payment review controls. Keep the review panel hidden until explicitly opened.
+$('openPaymentReviewsBtn').addEventListener('click', async ()=>{
+  if(!isEventOwner)return toast('ไม่มีสิทธิ์ตรวจสอบสลิป');
+  const panel=$('eventPaymentReviewPanel');
+  panel.classList.remove('hidden');
+  await loadEventPaymentReviews();
+  panel.scrollIntoView({behavior:'smooth',block:'start'});
+});
+$('refreshPaymentReviewsBtn').addEventListener('click', loadEventPaymentReviews);
+$('closePaymentReviewsBtn').addEventListener('click', ()=>$('eventPaymentReviewPanel').classList.add('hidden'));
+
 // Owner-only event deposit review queue.
 async function loadEventPaymentReviews(){
   if(!isEventOwner)return toast('ไม่มีสิทธิ์ตรวจสอบสลิป');
@@ -613,6 +624,6 @@ $('eventForm').addEventListener('reset', ()=>{
 });
 
 document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b)act(b.dataset.action,b.dataset.id)});
-(async()=>{if(token){try{await rpc('staff_list_bookings',{p_staff_token:token});showDashboard()}catch(e){await logout(false)}}})();
+(async()=>{if(token){try{await rpc('staff_list_bookings',{p_staff_token:token});await showDashboard()}catch(e){await logout(false)}}})();
 setInterval(()=>{document.querySelectorAll('[data-timer]').forEach(el=>{const b=bookings.find(x=>x.id===el.dataset.timer);if(b){el.textContent=timerText(b);const card=el.closest('.booking');const cap=card?.querySelector('[data-timer-caption]');if(cap)cap.textContent=timerCaption(b)}})},1000);
 </script></body></html>
