@@ -7,6 +7,28 @@
 <style>
 :root{--pink:#f5c4d2;--pinkpale:#fff1f5;--blue:#bfe5fa;--yellow:#ffffcf;--brown:#50332e;--rose:#f2619c;--line:#e9d7d9;--muted:#8b716c;--green:#b6d8ad;--orange:#f7d2a2;--red:#ef9a9a}*{box-sizing:border-box}body{margin:0;color:var(--brown);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;background:#fff7f8;background-image:repeating-linear-gradient(0deg,transparent 0 28px,#f8dce4 28px 56px),repeating-linear-gradient(90deg,transparent 0 28px,#f8dce4 28px 56px);background-blend-mode:multiply}button,input,select{font:inherit}button{cursor:pointer}.shell{max-width:1120px;margin:0 auto;background:#fffdf7;min-height:100vh;box-shadow:0 0 30px #50332e12}.brand{text-align:center;margin:0 10px;padding:35px 18px 22px;background:var(--blue);clip-path:polygon(0 23%,50% 0,100% 23%,100% 100%,0 100%)}.brand h1{font-family:Georgia,serif;font-size:clamp(29px,5vw,43px);font-weight:500;letter-spacing:3px;margin:8px 0}.welcome{font-family:Georgia,serif;font-style:italic}.lace{height:14px;margin:0 10px;background:radial-gradient(circle at 6px 5px,transparent 5px,#e6d8dc 5.5px,#e6d8dc 6.5px,transparent 7px) 0 0/12px 12px repeat-x}main{padding:20px clamp(13px,3vw,30px) 35px}.eyebrow{text-align:center;letter-spacing:3px;font-size:11px;color:var(--muted)}h2{text-align:center;font-family:Georgia,serif;font-weight:500;margin:7px 0 18px}.panel{margin:14px 0;padding:17px;background:#fffaf0;border:1px solid var(--line);border-radius:17px}.field{margin:12px 0}.field label{display:block;font-weight:700;font-size:14px;margin-bottom:6px}.field input,.field select{width:100%;padding:11px;border:1px solid #d9c7c3;border-radius:10px;background:#fff;color:var(--brown);min-height:44px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.btn{border:0;border-radius:12px;background:var(--rose);color:#fff;font-weight:800;padding:12px 16px;box-shadow:0 3px 0 #d94c83}.btn.secondary{background:#fff;color:var(--brown);border:1px solid #d9c7c3;box-shadow:none}.btn:disabled{opacity:.5;cursor:not-allowed}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.actions .btn{flex:1}.hidden{display:none!important}.notice{background:#fff1c1;border-radius:11px;padding:12px 14px;font-size:13px;line-height:1.65;margin:14px 0}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.stat{padding:14px;background:#fff;border:1px solid var(--line);border-radius:14px}.stat small{display:block;color:var(--muted)}.stat strong{display:block;font-size:25px;margin-top:4px}.booking-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.booking{border:1px solid var(--line);background:#fff;border-radius:15px;padding:14px}.booking h3{margin:0 0 6px;font-size:17px}.meta{font-size:13px;line-height:1.75;color:var(--muted)}.badge{display:inline-block;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;background:#fff}.status-green{background:#e5f2df}.status-yellow{background:#fff1c1}.status-red{background:#ffe1e1}.status-blue{background:#e2f2ff}.status-gray{background:#f0e9e8}.timer{font-size:27px;font-weight:850;letter-spacing:1px;margin:9px 0}.booking-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.smallbtn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 10px;color:var(--brown);font-size:13px;font-weight:750}.smallbtn.primary{background:var(--rose);color:#fff;border-color:var(--rose)}.empty{padding:24px;text-align:center;background:#fff;border:1px dashed var(--line);border-radius:14px;color:var(--muted)}.footer{text-align:center;padding:18px;background:#fff0f4;font-size:12px;line-height:1.8}.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--brown);color:#fff;padding:12px 18px;border-radius:12px;max-width:90%;z-index:10}.subtle{color:var(--muted);font-size:12px;line-height:1.6}@media(max-width:650px){.row{grid-template-columns:1fr;gap:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.booking-list{grid-template-columns:1fr}}
 
+
+.history-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:22px 0 10px}
+.history-filter-panel{background:#fffaf0}
+.history-stats{margin-top:14px}
+.history-day{margin:16px 0;padding:14px;background:#fffaf0;border:1px solid var(--line);border-radius:14px}
+.history-day-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.history-day-head h3{margin:0;font-size:16px}
+.history-day-total{font-size:12px;color:var(--muted);font-weight:700}
+.history-record{background:#fff;border:1px solid var(--line);border-radius:12px;margin:8px 0;overflow:hidden}
+.history-record summary{list-style:none;cursor:pointer;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.history-record summary::-webkit-details-marker{display:none}
+.history-record summary:after{content:'＋';color:var(--rose);font-weight:900;font-size:18px;margin-left:4px}
+.history-record[open] summary:after{content:'−'}
+.history-record-main{min-width:0;flex:1}
+.history-record-main b{display:block;overflow-wrap:anywhere}
+.history-record-main small{display:block;color:var(--muted);font-size:12px;margin-top:4px;line-height:1.5}
+.history-record-price{font-weight:850;color:var(--rose);white-space:nowrap;font-size:14px}
+.history-record-detail{padding:0 12px 13px;border-top:1px dashed var(--line)}
+.history-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.history-detail-cell{padding:9px;background:#fff9e8;border-radius:9px;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.history-detail-cell span{display:block;color:var(--muted);font-size:11px;margin-bottom:2px}
+@media(max-width:650px){.history-detail-grid{grid-template-columns:1fr}.history-record summary{align-items:flex-start}.history-record-price{font-size:13px}}
 </style></head>
 <body><div class="shell"><header class="brand"><div class="welcome">STAFF WORKSPACE</div><h1>ONCE A WEEK</h1></header><div class="lace"></div><main>
 <section id="loginView"><div class="eyebrow">PRIVATE STAFF ACCESS</div><h2>เข้าสู่ระบบพนักงาน</h2><div class="panel" style="max-width:480px;margin:20px auto"><div class="field"><label for="staffName">ชื่อผู้ใช้งาน</label><input id="staffName" autocomplete="username" value="เจ้าของร้าน" placeholder="ชื่อพนักงาน"></div><div class="field"><label for="pin">PIN 8 หลัก</label><input id="pin" type="password" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" autocomplete="current-password" placeholder="กรอก PIN 8 หลัก"></div><button class="btn" id="loginBtn" style="width:100%">เข้าสู่ระบบ</button><p class="subtle" id="loginMessage">ใช้ PIN ที่แสดงครั้งเดียวหลังตั้งค่าฐานข้อมูลสำเร็จ</p></div></section>
@@ -99,7 +121,20 @@
     <div id="eventSessionList"></div>
   </div>
 </section>
-<h2 style="text-align:left">ประวัติที่เสร็จสิ้น / ยกเลิก</h2><div id="historyList"></div>
+<div class="history-heading">
+  <h2 style="text-align:left;margin:0">ประวัติที่เสร็จสิ้น / ยกเลิก</h2>
+  <button class="btn secondary" type="button" id="refreshHistoryBtn">รีเฟรชประวัติ</button>
+</div>
+<section class="panel history-filter-panel">
+  <div class="row">
+    <div class="field"><label for="historyMonth">ดูประวัติรายเดือน</label><input id="historyMonth" type="month"></div>
+    <div class="field"><label for="historyDay">หรือเลือกดูเฉพาะรายวัน</label><input id="historyDay" type="date"></div>
+  </div>
+  <div class="subtle">เลือกเดือนเพื่อดูรายการทั้งหมดในเดือนนั้น โดยแยกกลุ่มตามวัน หรือเลือกวันที่เพื่อดูเฉพาะวันนั้น</div>
+  <div class="actions"><button class="btn secondary" type="button" id="historyThisMonthBtn">ดูเดือนนี้</button><button class="btn secondary" type="button" id="clearHistoryDayBtn">ล้างวันที่เลือก</button></div>
+  <div class="stats history-stats" id="historySummary"><div class="stat"><small>กำลังโหลดประวัติ</small><strong>—</strong></div></div>
+</section>
+<div id="historyList"><div class="empty">กำลังโหลดประวัติ...</div></div>
 
 </section>
 </main><footer class="footer"><strong>ONCE A WEEK</strong><br>Hat Yai, Songkhla · MAKE • PLAY • CREATE</footer></div><div id="toast" class="toast hidden"></div>
@@ -147,9 +182,94 @@ function renderCard(b){
   const running=['active','paused'].includes(b.status);
   return `<article class="booking"><div style="display:flex;justify-content:space-between;gap:8px;align-items:start"><div><h3>${esc(b.customer_name)} · ${b.party_size} คน</h3><div class="subtle">${esc(b.booking_code||'')}</div></div><span class="badge ${cls}">${label}</span></div><div class="meta"><b>${esc(b.activity_name||'Workshop')}</b><br>${detail}<br>⏱ เวลาที่กำหนด ${durationFor(b)} นาที${running?`<br><span data-timer-caption>${timerCaption(b)}</span>`:''}<br>หมายเหตุ: ${esc(b.notes||'—')}</div>${running?`<div class="timer" data-timer="${b.id}">${timerText(b)}</div>`:''}<div class="booking-actions">${buttons}</div></article>`;
 }
-function render(){const today=todayISO();const day=bookings.filter(b=>b.booking_date===today&&b.status!=='cancelled');$('todayLabel').textContent=new Date().toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'});$('stats').innerHTML=[['รายการวันนี้',day.length],['ผู้เข้าร่วม',day.reduce((n,b)=>n+Number(b.party_size||0),0)],['กำลังทำ',day.filter(b=>['active','paused'].includes(b.status)).length],['เสร็จแล้ววันนี้',day.filter(b=>b.status==='completed').length]].map(x=>`<div class="stat"><small>${x[0]}</small><strong>${x[1]}</strong></div>`).join('');const active=bookings.filter(b=>!['completed','cancelled','no_show'].includes(b.status));$('bookingList').innerHTML=active.length?active.map(renderCard).join(''):'<div class="empty">ยังไม่มีรายการจองที่ต้องจัดการ</div>';const hist=bookings.filter(b=>['completed','cancelled','no_show'].includes(b.status)).slice(0,30);$('historyList').innerHTML=hist.length?'<div class="panel">'+hist.map(b=>`<div style="padding:8px 0;border-bottom:1px dashed var(--line)"><b>${esc(b.customer_name)}</b> · ${esc(b.activity_name)} · ${dateLabel(b.booking_date)} ${timeLabel(b.start_time)} <span class="badge ${statusInfo(b)[1]}">${statusInfo(b)[0]}</span><div class="meta">รหัสจอง: <b>${esc(b.booking_code||'ไม่พบรหัส')}</b></div>${b.status==='completed'&&b.total_workshop_price!=null?`<div class="meta">ใช้เวลาจริง ${Number(b.actual_duration_minutes||0)} นาที · ค่ากิจกรรม ${Number(b.total_workshop_price).toLocaleString('th-TH')} บาท</div>`:''}</div>`).join('')+'</div>':'<div class="empty">ยังไม่มีประวัติ</div>'}
+function render(){const today=todayISO();const day=bookings.filter(b=>b.booking_date===today&&b.status!=='cancelled');$('todayLabel').textContent=new Date().toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'});$('stats').innerHTML=[['รายการวันนี้',day.length],['ผู้เข้าร่วม',day.reduce((n,b)=>n+Number(b.party_size||0),0)],['กำลังทำ',day.filter(b=>['active','paused'].includes(b.status)).length],['เสร็จแล้ววันนี้',day.filter(b=>b.status==='completed').length]].map(x=>`<div class="stat"><small>${x[0]}</small><strong>${x[1]}</strong></div>`).join('');const active=bookings.filter(b=>!['completed','cancelled','no_show'].includes(b.status));$('bookingList').innerHTML=active.length?active.map(renderCard).join(''):'<div class="empty">ยังไม่มีรายการจองที่ต้องจัดการ</div>';renderHistory();}
 async function rpc(name,args){const {data,error}=await db.rpc(name,args);if(error)throw error;return data}
-async function loadBookings(){try{bookings=await rpc('staff_list_bookings',{p_staff_token:token})||[];render()}catch(e){console.error(e);if(String(e.message||'').includes('STAFF_SESSION_EXPIRED')){await logout(false);toast('หมดเวลาการเข้าสู่ระบบ กรุณาใส่ PIN ใหม่')}else toast('โหลดรายการไม่สำเร็จ: '+e.message)}}
+async function loadBookings(refreshHistory=true){try{bookings=await rpc('staff_list_bookings',{p_staff_token:token})||[];render();if(refreshHistory)await loadBookingHistory()}catch(e){console.error(e);if(String(e.message||'').includes('STAFF_SESSION_EXPIRED')){await logout(false);toast('หมดเวลาการเข้าสู่ระบบ กรุณาใส่ PIN ใหม่')}else toast('โหลดรายการไม่สำเร็จ: '+e.message)}}
+
+// Full booking history is fetched by the date range, independently of the 7-day live dashboard feed.
+let historyBookings=[];
+let historyRequestId=0;
+function localMonthValue(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
+function getHistoryRange(){
+  const selectedDay=$('historyDay').value;
+  if(selectedDay)return {from:selectedDay,to:selectedDay};
+  const value=$('historyMonth').value||localMonthValue();
+  const [year,month]=value.split('-').map(Number);
+  if(!year||!month)return null;
+  const from=`${year}-${String(month).padStart(2,'0')}-01`;
+  const lastDay=new Date(year,month,0).getDate();
+  const to=`${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+  return {from,to};
+}
+function moneyTHB(value){return value==null?'—':`${Number(value).toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:2})} บาท`}
+function renderHistory(){
+  const root=$('historyList');
+  if(!root)return;
+  const records=[...historyBookings].filter(b=>['completed','cancelled','no_show'].includes(b.status))
+    .sort((a,b)=>String(b.booking_date||'').localeCompare(String(a.booking_date||''))||String(b.start_time||'').localeCompare(String(a.start_time||'')));
+  const completed=records.filter(b=>b.status==='completed');
+  const attendees=completed.reduce((sum,b)=>sum+Number(b.party_size||0),0);
+  const revenue=completed.reduce((sum,b)=>sum+Number(b.total_workshop_price||0),0);
+  $('historySummary').innerHTML=[
+    ['รายการทั้งหมด',records.length],
+    ['ผู้เข้าร่วมกิจกรรม',attendees],
+    ['รายได้จากรายการเสร็จสิ้น',moneyTHB(revenue)]
+  ].map(([label,value])=>`<div class="stat"><small>${esc(label)}</small><strong style="font-size:${typeof value==='number'?'25px':'17px'}">${esc(value)}</strong></div>`).join('');
+  if(!records.length){root.innerHTML='<div class="empty">ไม่พบประวัติในช่วงวันที่ที่เลือก</div>';return;}
+  const groups=new Map();
+  for(const b of records){const key=b.booking_date||'ไม่ระบุวันที่';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(b)}
+  root.innerHTML=[...groups.entries()].map(([date,items])=>{
+    const dayCompleted=items.filter(b=>b.status==='completed');
+    const dayRevenue=dayCompleted.reduce((sum,b)=>sum+Number(b.total_workshop_price||0),0);
+    const rows=items.map(b=>{
+      const [statusLabel,statusClass]=statusInfo(b);
+      const amount=b.total_workshop_price==null?null:Number(b.total_workshop_price);
+      const priceText=amount==null?'ไม่มียอดบันทึก':moneyTHB(amount);
+      const phone=b.customer_phone||'ไม่ระบุ';
+      const detailCells=[
+        ['ชื่อลูกค้า',b.customer_name||'ไม่ระบุ'],
+        ['เบอร์โทรศัพท์',phone],
+        ['กิจกรรม',b.activity_name||'Workshop'],
+        ['วันที่',dateLabel(b.booking_date)],
+        ['เวลา',`${timeLabel(b.start_time)}–${timeLabel(b.end_time)} น.`],
+        ['จำนวนผู้เข้าร่วม',`${Number(b.party_size||0)} คน`],
+        ['ยอดค่ากิจกรรม',priceText],
+        ['เวลาที่ใช้จริง',b.actual_duration_minutes==null?'—':`${Number(b.actual_duration_minutes)} นาที`],
+        ['เวลาที่กำหนด',b.duration_minutes==null?'—':`${Number(b.duration_minutes)} นาที`],
+        ['โต๊ะ',b.table_name||'ไม่ระบุ'],
+        ['รหัสจอง',b.booking_code||'ไม่พบรหัส'],
+        ['สถานะ',statusLabel],
+        ['หมายเหตุ',b.notes||'—'],
+        ['บันทึกโดย',b.created_by||'—']
+      ];
+      return `<details class="history-record"><summary><span class="history-record-main"><b>${esc(b.customer_name||'ไม่ระบุชื่อ')} · ${esc(b.activity_name||'Workshop')}</b><small>${esc(timeLabel(b.start_time))} น. · ${Number(b.party_size||0)} คน · รหัส ${esc(b.booking_code||'—')}</small></span><span class="history-record-price">${esc(priceText)}</span><span class="badge ${statusClass}">${esc(statusLabel)}</span></summary><div class="history-record-detail"><div class="history-detail-grid">${detailCells.map(([label,value])=>`<div class="history-detail-cell"><span>${esc(label)}</span><b>${esc(value)}</b></div>`).join('')}</div></div></details>`;
+    }).join('');
+    return `<section class="history-day"><div class="history-day-head"><h3>${esc(dateLabel(date))}</h3><span class="history-day-total">${items.length} รายการ · เสร็จสิ้น ${dayCompleted.length} รายการ · รายได้ ${esc(moneyTHB(dayRevenue))}</span></div>${rows}</section>`;
+  }).join('');
+}
+async function loadBookingHistory(){
+  if(!$('historyList')||!token)return;
+  const range=getHistoryRange();if(!range)return;
+  const requestId=++historyRequestId;
+  $('historyList').innerHTML='<div class="empty">กำลังโหลดประวัติตามวันที่...</div>';
+  try{
+    historyBookings=await rpc('staff_list_booking_history',{p_staff_token:token,p_from_date:range.from,p_to_date:range.to})||[];
+    if(requestId!==historyRequestId)return;
+    renderHistory();
+  }catch(e){
+    if(requestId!==historyRequestId)return;
+    console.error('Load booking history failed:',e);
+    $('historySummary').innerHTML='<div class="stat"><small>สถานะประวัติ</small><strong style="font-size:14px">โหลดไม่สำเร็จ</strong></div>';
+    $('historyList').innerHTML=`<div class="empty">โหลดประวัติไม่สำเร็จ: ${esc(e.message)}<br><span class="subtle">กรุณารันไฟล์ SQL สำหรับประวัติรายวัน/รายเดือนก่อน</span></div>`;
+  }
+}
+$('historyMonth').value=localMonthValue();
+$('historyMonth').addEventListener('change',()=>{$('historyDay').value='';loadBookingHistory()});
+$('historyDay').addEventListener('change',loadBookingHistory);
+$('historyThisMonthBtn').addEventListener('click',()=>{$('historyMonth').value=localMonthValue();$('historyDay').value='';loadBookingHistory()});
+$('clearHistoryDayBtn').addEventListener('click',()=>{$('historyDay').value='';loadBookingHistory()});
+$('refreshHistoryBtn').addEventListener('click',loadBookingHistory);
+
 async function updateAction(id,action,minutes=null){
   try{
     await rpc('staff_update_booking',{p_staff_token:token,p_booking_id:id,p_action:action,p_minutes:minutes});
@@ -168,7 +288,7 @@ async function act(action,id){
   await updateAction(id,action,null);
 }
 async function addWalkin(){const name=$('wName').value.trim();if(!name)return toast('กรุณากรอกชื่อลูกค้า');const btn=$('walkinBtn');btn.disabled=true;try{await rpc('staff_create_walkin',{p_staff_token:token,p_customer_name:name,p_customer_phone:$('wPhone').value.trim(),p_size:'Hourly',p_party_size:Number($('wPeople').value),p_duration_minutes:Number($('wDuration').value),p_table_name:$('wTable').value});$('wName').value='';$('wPhone').value='';await loadBookings();toast('เพิ่ม Walk-in และเริ่มจับเวลาแล้ว')}catch(e){console.error(e);toast('เพิ่ม Walk-in ไม่สำเร็จ: '+e.message)}finally{btn.disabled=false}}
-function showDashboard(){ checkEventOwner(); $('loginView').classList.add('hidden');$('dashboard').classList.remove('hidden');$('signedInAs').textContent='เข้าสู่ระบบในชื่อ '+staffName;loadBookings();clearInterval(refreshTimer);refreshTimer=setInterval(loadBookings,45000)}
+function showDashboard(){ checkEventOwner(); $('loginView').classList.add('hidden');$('dashboard').classList.remove('hidden');$('signedInAs').textContent='เข้าสู่ระบบในชื่อ '+staffName;loadBookings();clearInterval(refreshTimer);refreshTimer=setInterval(()=>loadBookings(false),45000)}
 async function login(){const name=$('staffName').value.trim(),pin=$('pin').value.trim();if(!name||!/^\d{8}$/.test(pin))return $('loginMessage').textContent='กรุณากรอกชื่อและ PIN 8 หลัก';const btn=$('loginBtn');btn.disabled=true;$('loginMessage').textContent='กำลังตรวจสอบ PIN...';try{const data=await rpc('staff_login',{p_display_name:name,p_pin:pin});const row=Array.isArray(data)?data[0]:data;if(!row?.session_token){$('loginMessage').textContent=row?.message||'เข้าสู่ระบบไม่สำเร็จ';return}token=row.session_token;staffName=row.staff_name;sessionStorage.setItem(TOKEN_KEY,token);sessionStorage.setItem('ow_staff_name',staffName);$('pin').value='';showDashboard()}catch(e){console.error(e);$('loginMessage').textContent='เข้าสู่ระบบไม่สำเร็จ: '+e.message}finally{btn.disabled=false}}
 async function logout(callServer=true){clearInterval(refreshTimer);if(callServer&&token){try{await rpc('staff_logout',{p_staff_token:token})}catch(e){console.warn(e)}}token='';staffName='';bookings=[];sessionStorage.removeItem(TOKEN_KEY);sessionStorage.removeItem('ow_staff_name');$('dashboard').classList.add('hidden');$('loginView').classList.remove('hidden');$('loginMessage').textContent='ออกจากระบบแล้ว กรุณาใส่ PIN เพื่อเข้าสู่ระบบอีกครั้ง'}
 
@@ -435,11 +555,21 @@ async function loadEventPaymentReviews(){
   }catch(e){console.error(e);root.innerHTML='<div class="empty">โหลดรายการไม่สำเร็จ: '+esc(e.message)+'</div>';}
 }
 async function openPaymentProof(path){
+  // Open a tab synchronously from the click so Safari does not block the popup.
+  const proofWindow=window.open('about:blank','_blank');
+  if(!proofWindow){toast('Safari บล็อกหน้าต่างสลิป กรุณาอนุญาต Pop-up');return;}
+  proofWindow.document.write('<!doctype html><html><head><meta charset="utf-8"><title>กำลังเปิดสลิป</title></head><body style="font-family:system-ui;text-align:center;padding:40px;color:#50332e">กำลังเปิดสลิป...</body></html>');
   try{
-    const response=await fetch('/api/event-payment-proof',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path,token}),cache:'no-store'});const data=await response.json();
+    const response=await fetch('/api/event-payment-proof',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path,token}),cache:'no-store'});
+    const data=await response.json();
     if(!response.ok)throw new Error(data.error||'เปิดสลิปไม่สำเร็จ');
-    window.open(data.signedUrl,'_blank','noopener');
-  }catch(e){toast('เปิดสลิปไม่สำเร็จ: '+e.message);}
+    if(!data.signedUrl)throw new Error('ไม่พบ URL ของสลิป');
+    proofWindow.location.replace(data.signedUrl);
+  }catch(e){
+    proofWindow.close();
+    console.error('Payment proof error:',e);
+    toast('เปิดสลิปไม่สำเร็จ: '+e.message);
+  }
 }
 async function reviewEventPayment(id,decision){
   let reason=null;
