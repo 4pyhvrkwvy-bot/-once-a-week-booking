@@ -565,21 +565,86 @@ async function loadEventPaymentReviews(){
     root.querySelectorAll('[data-proof-reject]').forEach(b=>b.onclick=()=>reviewEventPayment(b.dataset.proofReject,'reject'));
   }catch(e){console.error(e);root.innerHTML='<div class="empty">โหลดรายการไม่สำเร็จ: '+esc(e.message)+'</div>';}
 }
-async function openPaymentProof(path){
-  // Open a tab synchronously from the click so Safari does not block the popup.
-  const proofWindow=window.open('about:blank','_blank');
-  if(!proofWindow){toast('Safari บล็อกหน้าต่างสลิป กรุณาอนุญาต Pop-up');return;}
-  proofWindow.document.write('<!doctype html><html><head><meta charset="utf-8"><title>กำลังเปิดสลิป</title></head><body style="font-family:system-ui;text-align:center;padding:40px;color:#50332e">กำลังเปิดสลิป...</body></html>');
-  try{
-    const response=await fetch('/api/event-payment-proof',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path,token}),cache:'no-store'});
-    const data=await response.json();
-    if(!response.ok)throw new Error(data.error||'เปิดสลิปไม่สำเร็จ');
-    if(!data.signedUrl)throw new Error('ไม่พบ URL ของสลิป');
-    proofWindow.location.replace(data.signedUrl);
-  }catch(e){
-    proofWindow.close();
-    console.error('Payment proof error:',e);
-    toast('เปิดสลิปไม่สำเร็จ: '+e.message);
+async function openPaymentProof(path) {
+  // ตรวจสอบ path ก่อนเรียก API
+  if (!path || typeof path !== 'string') {
+    toast('ไม่พบตำแหน่งไฟล์สลิป');
+    return;
+  }
+
+  // เปิดหน้าต่างทันที ป้องกัน Safari บล็อก Pop-up
+  const proofWindow = window.open('about:blank', '_blank');
+
+  if (!proofWindow) {
+    toast('Safari บล็อกหน้าต่างสลิป กรุณาอนุญาต Pop-up');
+    return;
+  }
+
+  // แสดงสถานะระหว่างโหลด
+  proofWindow.document.title = 'กำลังเปิดสลิป';
+  proofWindow.document.body.textContent = 'กำลังเปิดสลิป...';
+
+  try {
+    const response = await fetch('/api/event-payment-proof', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        path: path,
+        token: token
+      }),
+      cache: 'no-store'
+    });
+
+    let data;
+
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error('API ส่งข้อมูลกลับมาไม่ใช่ JSON');
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        data.detail
+          ? `${data.error}: ${data.detail}`
+          : data.error || `HTTP ${response.status}`
+      );
+    }
+
+    if (!data.signedUrl) {
+      throw new Error('ไม่พบ Signed URL จาก API');
+    }
+
+    // แปลงเป็น URL ที่สมบูรณ์
+    const signedUrl = new URL(
+      data.signedUrl,
+      SUPABASE_URL
+    );
+
+    // ป้องกัน URL ที่ไม่ได้มาจาก Supabase
+    const supabaseOrigin = new URL(SUPABASE_URL).origin;
+
+    if (signedUrl.origin !== supabaseOrigin) {
+      throw new Error('URL ของสลิปไม่ตรงกับ Supabase');
+    }
+
+    if (!['https:', 'http:'].includes(signedUrl.protocol)) {
+      throw new Error('รูปแบบ URL ไม่ถูกต้อง');
+    }
+
+    // เปิดสลิป
+    proofWindow.location.replace(signedUrl.href);
+
+  } catch (error) {
+    console.error('Payment proof error:', error);
+
+    try {
+      proofWindow.close();
+    } catch {}
+
+    toast('เปิดสลิปไม่สำเร็จ: ' + error.message);
   }
 }
 async function reviewEventPayment(id,decision){
