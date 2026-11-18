@@ -1,11 +1,6 @@
 // Trigger deployment with latest environment variables
 const crypto = require('crypto');
 
-module.exports.config = {
-  api: {
-    bodyParser: false
-  }
-};
 
 function readRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -113,7 +108,7 @@ async function replyToLine(replyToken, message) {
   }
 }
 
-module.exports = async (req, res) => {
+const handler = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({
       success: false,
@@ -184,5 +179,11 @@ module.exports = async (req, res) => {
       success: false,
       message: 'Webhook processing failed'
     });
+  }
+module.exports = handler;
+
+module.exports.config = {
+  api: {
+    bodyParser: false
   }
 };
