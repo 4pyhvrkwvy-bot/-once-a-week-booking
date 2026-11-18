@@ -1,4 +1,4 @@
-// Trigger deployment with latest environment variables
+// Refresh deployment with updated LINE credentials
 const crypto = require('crypto');
 
 
