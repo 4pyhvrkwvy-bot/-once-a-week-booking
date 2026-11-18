@@ -172,7 +172,7 @@ const handler = async (req, res) => {
       success: true
     });
 
-  } catch (error) {
+   } catch (error) {
     console.error('LINE webhook error:', error.message);
 
     return res.status(500).json({
@@ -180,6 +180,8 @@ const handler = async (req, res) => {
       message: 'Webhook processing failed'
     });
   }
+};
+
 module.exports = handler;
 
 module.exports.config = {
