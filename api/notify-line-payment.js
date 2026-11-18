@@ -52,9 +52,11 @@ module.exports = async function handler(req, res) {
     return data;
   }
 
+    let logId = null;
+
   try {
     const bookingId = String(req.body?.bookingId || '').trim();
-
+    
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bookingId)) {
       return res.status(400).json({
         success: false,
@@ -115,7 +117,6 @@ module.exports = async function handler(req, res) {
       `line_notification_logs?select=id,status&booking_id=eq.${bookingId}&payment_submitted_at=eq.${timestampFilter}`
     );
 
-    let logId;
 
     if (oldLogs?.length) {
       const oldLog = oldLogs[0];
@@ -234,13 +235,32 @@ module.exports = async function handler(req, res) {
       notified: userIds.length
     });
 
+ 
   } catch (error) {
     console.error('LINE payment notification error:', error);
 
+    // Mark this notification as failed so a later request can retry.
+    if (logId) {
+      try {
+        await db(
+          `line_notification_logs?id=eq.${logId}`,
+          {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({
+              status: 'failed',
+              error_message: String(error.message || 'Unknown error').slice(0, 1000)
+            })
+          }
+        );
+      } catch (logError) {
+        console.error('Failed to update notification log:', logError);
+      }
+    }
+
     return res.status(500).json({
       success: false,
-      error: 'LINE notification failed',
-      detail: error.message
+      error: 'LINE notification failed'
     });
   }
 };
