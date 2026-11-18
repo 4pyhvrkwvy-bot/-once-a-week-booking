@@ -172,7 +172,6 @@ $('uploadEventSlip').onclick=async()=>{
     const {error:submitError}=await supabaseClient.rpc('submit_event_payment_proof',{
       p_booking_id:activeEventBooking.id,p_booking_code:activeEventBooking.code,p_proof_path:path
     });
-    if(submitError)throw submitError;
     
 if(submitError)throw submitError;
 
