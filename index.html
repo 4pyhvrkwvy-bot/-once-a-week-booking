@@ -173,6 +173,30 @@ $('uploadEventSlip').onclick=async()=>{
       p_booking_id:activeEventBooking.id,p_booking_code:activeEventBooking.code,p_proof_path:path
     });
     if(submitError)throw submitError;
+    
+if(submitError)throw submitError;
+
+// Notify Owner via LINE after payment proof is saved.
+// Notification failure must not interrupt the customer's booking.
+try {
+  const notifyResponse = await fetch('/api/notify-line-payment', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      bookingId: activeEventBooking.id
+    })
+  });
+
+  const notifyResult = await notifyResponse.json();
+
+  if (!notifyResponse.ok || !notifyResult.success) {
+    console.warn('LINE notification failed:', notifyResult);
+  }
+} catch (notifyError) {
+  console.warn('LINE notification request failed:', notifyError);
+}
     $('eventPaymentPanel').classList.add('hidden');
     $('eventResult').innerHTML=`<h3>ส่งหลักฐานเรียบร้อยแล้ว</h3><p>หมายเลขจอง: <b>${escapeHtml(activeEventBooking.code)}</b></p><p><span class="badge status-yellow">รอเจ้าของร้านตรวจสอบสลิป</span></p><p>การจองจะได้รับการยืนยันเมื่อเจ้าของร้านตรวจสอบการชำระเงินแล้วเท่านั้น</p>`;
     $('eventResult').classList.add('show');
