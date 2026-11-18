@@ -1,4 +1,4 @@
-
+// Trigger deployment with latest environment variables
 const crypto = require('crypto');
 
 module.exports.config = {
