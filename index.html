@@ -263,7 +263,8 @@ try {
   }catch(err){console.error(err);toast('ส่งสลิปไม่สำเร็จ: '+(err.message||'กรุณาลองใหม่'));}
   finally{btn.disabled=false;btn.textContent='ส่งหลักฐานการชำระเงิน';}
 };
-restoreEventPayment();\n// Event CTA is bound by selectEventCard() to the currently selected Event.
+restoreEventPayment();
+// Event CTA is bound by selectEventCard() to the currently selected Event.
 
 // Thai/English interface toggle for the prototype. Future activities can be added to the activities data list with translated names/details.
 const translations={
