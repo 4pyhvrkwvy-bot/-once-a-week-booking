@@ -653,25 +653,28 @@ async function reviewEventPayment(id,decision){
   if(decision==='reject'){reason=prompt('ระบุเหตุผลที่ปฏิเสธสลิป (จะแจ้งให้ลูกค้าทราบ)');if(reason===null)return;}
   try{
     await rpc('staff_event_review_payment',{p_staff_token:token,p_booking_id:id,p_decision:decision,p_reason:reason});
-    toast(decision==='approve'?'อนุมัติและยืนยัน Booking แล้ว':'ปฏิเสธสลิปและคืนที่นั่งแล้ว');
-
-    // Notify the linked customer after the database review succeeds.
+    // Notify the linked customer only after the review RPC has succeeded.
     try {
       const response = await fetch('/api/notify-line-booking-review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: id, decision })
+        body: JSON.stringify({ bookingId: id, decision }),
+        cache: 'no-store'
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.success) {
-        console.warn('Customer LINE notification failed:', result);
-        toast('บันทึกผลตรวจสอบแล้ว แต่ส่ง LINE แจ้งลูกค้าไม่สำเร็จ');
-      } else if (result.notified === false) {
-        console.info('Customer has not linked LINE; no notification sent.');
+        console.error('Customer LINE notification failed:', response.status, result);
+        toast('บันทึกผลแล้ว แต่ส่ง LINE ไม่สำเร็จ กรุณาตรวจสอบ Logs');
+      } else if (result.notified === false && result.reason === 'customer_not_linked') {
+        toast('บันทึกผลแล้ว แต่ลูกค้ายังไม่ได้เชื่อม LINE จึงยังส่งข้อความไม่ได้');
+      } else if (result.notified) {
+        toast(decision === 'approve' ? 'ยืนยันการจองและส่ง LINE ให้ลูกค้าแล้ว' : 'ปฏิเสธสลิปและส่ง LINE แจ้งลูกค้าแล้ว');
+      } else {
+        toast('บันทึกผลแล้ว แต่ยังไม่สามารถยืนยันการส่ง LINE ได้');
       }
     } catch (notifyError) {
-      console.warn('Customer LINE notification request failed:', notifyError);
-      toast('บันทึกผลตรวจสอบแล้ว แต่ส่ง LINE แจ้งลูกค้าไม่สำเร็จ');
+      console.error('Customer LINE notification request failed:', notifyError);
+      toast('บันทึกผลแล้ว แต่เรียก API ส่ง LINE ไม่สำเร็จ');
     }
     await loadEventPaymentReviews();
   }catch(e){toast('ดำเนินการไม่สำเร็จ: '+e.message);}
