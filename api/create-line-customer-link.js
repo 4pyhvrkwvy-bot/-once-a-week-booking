@@ -13,7 +13,7 @@ module.exports = async function handler(req, res) {
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuid.test(bookingId) || !/^OWE-[A-Z0-9-]{6,30}$/i.test(bookingCode)) return res.status(400).json({success:false,error:'Invalid booking details'});
 
-  const base = supabaseUrl.replace(/\/+$/, '');
+  const base = supabaseUrl.replace(/\\/+$/, '');
   const headers = { apikey:serviceKey, Authorization:`Bearer ${serviceKey}`, 'Content-Type':'application/json' };
   async function db(path, options={}) {
     const r=await fetch(`${base}/rest/v1/${path}`,{...options,headers:{...headers,...(options.headers||{})}});
@@ -27,6 +27,11 @@ module.exports = async function handler(req, res) {
     const booking=rows?.[0];
     if(!booking) return res.status(404).json({success:false,error:'Booking not found'});
     if(booking.booking_status==='cancelled') return res.status(409).json({success:false,error:'Booking is cancelled'});
+
+    const existing=await db(`line_customer_links?select=line_user_id&booking_id=eq.${bookingId}`);
+    if(existing?.[0]?.line_user_id) {
+      return res.status(200).json({success:true,alreadyLinked:true,addFriendUrl:'https://lin.ee/v8lt8HR'});
+    }
 
     const token=crypto.randomBytes(18).toString('base64url');
     const tokenHash=crypto.createHash('sha256').update(token).digest('hex');
