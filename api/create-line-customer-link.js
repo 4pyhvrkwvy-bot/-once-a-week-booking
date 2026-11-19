@@ -13,7 +13,7 @@ module.exports = async function handler(req, res) {
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuid.test(bookingId) || !/^OWE-[A-Z0-9-]{6,30}$/i.test(bookingCode)) return res.status(400).json({success:false,error:'Invalid booking details'});
 
-  const base = supabaseUrl.replace(/\\/+$/, '');
+  const base = supabaseUrl.replace(/\/+$/, '');
   const headers = { apikey:serviceKey, Authorization:`Bearer ${serviceKey}`, 'Content-Type':'application/json' };
   async function db(path, options={}) {
     const r=await fetch(`${base}/rest/v1/${path}`,{...options,headers:{...headers,...(options.headers||{})}});
@@ -30,7 +30,7 @@ module.exports = async function handler(req, res) {
 
     const existing=await db(`line_customer_links?select=line_user_id&booking_id=eq.${bookingId}`);
     if(existing?.[0]?.line_user_id) {
-      return res.status(200).json({success:true,alreadyLinked:true,addFriendUrl:'https://lin.ee/v8lt8HR'});
+      return res.status(200).json({success:true,alreadyLinked:true,addFriendUrl:'https://lin.ee/5h2ODqc'});
     }
 
     const token=crypto.randomBytes(18).toString('base64url');
@@ -41,7 +41,7 @@ module.exports = async function handler(req, res) {
       headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
       body:JSON.stringify({booking_id:bookingId,token_hash:tokenHash,expires_at:expiresAt,line_user_id:null,linked_at:null})
     });
-    return res.status(200).json({success:true,token,expiresAt,addFriendUrl:'https://lin.ee/v8lt8HR'});
+    return res.status(200).json({success:true,token,expiresAt,addFriendUrl:'https://lin.ee/5h2ODqc'});
   } catch(e) {
     console.error('Create LINE customer link failed:',e);
     return res.status(500).json({success:false,error:'Could not create LINE link'});
