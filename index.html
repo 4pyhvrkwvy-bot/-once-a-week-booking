@@ -131,7 +131,45 @@ document.addEventListener('click',async function(event){
 },true);
 
 function updateEventSummary(){if(!selectedEvent)return;const n=Number($('eventPeople').value||1),total=Number(selectedEvent.price_per_person)*n,hasDeposit=selectedEvent.deposit_per_person!=null,deposit=hasDeposit?Number(selectedEvent.deposit_per_person)*n:0;$('eventPriceSummary').innerHTML=`<div class="summary-line"><span>ราคารวม</span><strong>${eventMoney(total)}</strong></div><div class="summary-line"><span>เงินมัดจำ</span><strong>${hasDeposit?eventMoney(selectedEvent.deposit_per_person)+' × '+n+' คน = '+eventMoney(deposit):'ยังไม่กำหนด'}</strong></div><div class="summary-line"><span>ชำระส่วนที่เหลือ</span><strong>${hasDeposit?eventMoney(total-deposit):'—'}</strong></div>`;}
-$('eventPeople').addEventListener('change',updateEventSummary);$('eventDate').addEventListener('change',updateEventSummary);$('eventCancel').onclick=()=>{$('eventBookingPanel').classList.add('hidden');$('eventPaymentPanel').classList.add('hidden');$('eventConfirm').classList.remove('hidden');$('eventSlip').value='';$('eventResult').classList.remove('show');activeEventBooking=null;selectedEvent=null};let activeEventBooking=null;
+$('eventPeople').addEventListener('change',updateEventSummary);$('eventDate').addEventListener('change',updateEventSummary);$('eventCancel').onclick=()=>{$('eventBookingPanel').classList.add('hidden');$('eventPaymentPanel').classList.add('hidden');$('eventConfirm').classList.remove('hidden');$('eventSlip').value='';$('eventResult').classList.remove('show');activeEventBooking=null;selectedEvent=null;localStorage.removeItem(EVENT_RESUME_KEY)};let activeEventBooking=null;
+const EVENT_RESUME_KEY='ow_event_payment_resume_v1';
+function saveEventResume(lineData={}) {
+  try { localStorage.setItem(EVENT_RESUME_KEY, JSON.stringify({
+    booking:activeEventBooking, event:selectedEvent, line:lineData, savedAt:Date.now()
+  })); } catch(e) { console.warn('Could not save event payment state',e); }
+}
+function renderEventLineLink(lineData={}) {
+  if(lineData.alreadyLinked) {
+    $('lineCustomerLinkPanel').innerHTML='<strong>เชื่อมต่อ LINE สำหรับการจองนี้แล้ว</strong><br>คุณจะได้รับข้อความแจ้งผลการตรวจสอบมัดจำทาง LINE';
+    return;
+  }
+  if(lineData.token && lineData.addFriendUrl) {
+    const message='LINK '+lineData.token;
+    $('lineCustomerLinkPanel').innerHTML='<strong>รับการแจ้งเตือนผ่าน LINE</strong><br>1. <a href="'+lineData.addFriendUrl+'" target="_blank" rel="noopener">เปิด LINE OA ของ Once a Week</a><br>2. คัดลอกรหัสด้านล่าง แล้วส่งในแชต LINE OA<br><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px"><code style="padding:9px;background:#fff;border-radius:8px;overflow-wrap:anywhere">'+message+'</code><button type="button" class="btn secondary" id="copyEventLineLink">คัดลอกรหัส</button></div><small>รหัสใช้ได้ 30 นาทีและใช้ได้ครั้งเดียว หากสลับแอปแล้วกลับมา หน้านี้จะยังจำรายการจองไว้</small>';
+    $('copyEventLineLink').onclick=async()=>{try{await navigator.clipboard.writeText(message);toast('คัดลอกรหัสแล้ว กรุณาเปิด LINE OA และส่งข้อความ');}catch(e){toast('คัดลอกไม่สำเร็จ กรุณาคัดลอกรหัสด้วยตนเอง');}};
+    return;
+  }
+  $('lineCustomerLinkPanel').innerHTML='<strong>การแจ้งเตือนผ่าน LINE</strong><br>ไม่สามารถสร้างรหัสเชื่อมต่อได้ คุณยังสามารถชำระมัดจำและส่งสลิปได้ตามปกติ';
+}
+function restoreEventPayment() {
+  try {
+    const saved=JSON.parse(localStorage.getItem(EVENT_RESUME_KEY)||'null');
+    if(!saved?.booking?.id || !saved?.event?.id || Date.now()-Number(saved.savedAt||0)>24*60*60*1000) return;
+    activeEventBooking=saved.booking; selectedEvent=saved.event;
+    const panel=$('eventBookingPanel'), stepPanel=$('customer')?.querySelector('.step[data-step="1"]');
+    if(panel && stepPanel && panel.parentElement!==stepPanel) stepPanel.appendChild(panel);
+    $('eventBookingTitle').textContent=selectedEvent.title||'รายการจอง';
+    $('eventBookingDescription').textContent=selectedEvent.description||'';
+    panel.classList.remove('hidden');
+    $('eventConfirm').classList.add('hidden');
+    $('eventDepositAmount').textContent=eventMoney(activeEventBooking.deposit);
+    renderEventLineLink(saved.line||{});
+    $('eventPaymentPanel').classList.remove('hidden');
+    $('eventResult').classList.remove('show');
+    panel.scrollIntoView({behavior:'smooth',block:'start'});
+    toast('เรียกคืนรายการจองเดิมแล้ว ไม่ต้องจองใหม่');
+  } catch(e) { console.warn('Could not restore event payment state',e); }
+}
 $('eventConfirm').onclick=async()=>{
   if(!selectedEvent)return;
   if(selectedEvent.deposit_per_person==null||!Number.isFinite(Number(selectedEvent.deposit_per_person))||Number(selectedEvent.deposit_per_person)<0||Number(selectedEvent.deposit_per_person)>Number(selectedEvent.price_per_person))return toast('กิจกรรมนี้ยังไม่ได้กำหนดเงินมัดจำ กรุณาติดต่อร้าน');
@@ -160,16 +198,13 @@ $('eventConfirm').onclick=async()=>{
       });
       const linkResult = await linkResponse.json();
       if (!linkResponse.ok || !linkResult.success) throw new Error(linkResult.error || 'LINE link unavailable');
-      $('lineCustomerLinkPanel').innerHTML = linkResult.alreadyLinked
-        ? '<strong>เชื่อมต่อ LINE สำหรับการจองนี้แล้ว</strong><br>คุณจะได้รับข้อความแจ้งผลการตรวจสอบมัดจำทาง LINE'
-        : '<strong>รับการแจ้งเตือนผ่าน LINE</strong><br>' +
-          '1. <a href="' + linkResult.addFriendUrl + '" target="_blank" rel="noopener">เพิ่มเพื่อน Once a Week LINE OA</a><br>' +
-          '2. ส่งข้อความนี้ใน LINE OA: <strong>LINK ' + linkResult.token + '</strong><br>' +
-          '<small>รหัสใช้ได้ 30 นาที และใช้ได้ครั้งเดียว กรุณาเชื่อมต่อก่อนหมดอายุ</small>';
+      const lineData={alreadyLinked:!!linkResult.alreadyLinked,addFriendUrl:linkResult.addFriendUrl||'',token:linkResult.token||''};
+      renderEventLineLink(lineData);
+      saveEventResume(lineData);
     } catch (linkError) {
       console.warn('Could not create customer LINE link:', linkError);
-      $('lineCustomerLinkPanel').innerHTML =
-        '<strong>การแจ้งเตือนผ่าน LINE</strong><br>ขณะนี้สร้างรหัสเชื่อมต่อไม่สำเร็จ คุณยังสามารถชำระมัดจำและส่งสลิปได้ตามปกติ';
+      renderEventLineLink({});
+      saveEventResume({});
     }
     $('eventDepositAmount').textContent=eventMoney(activeEventBooking.deposit);
     $('eventPaymentPanel').classList.remove('hidden');
@@ -221,13 +256,14 @@ try {
   console.warn('LINE notification request failed:', notifyError);
 }
     $('eventPaymentPanel').classList.add('hidden');
+    localStorage.removeItem(EVENT_RESUME_KEY);
     $('eventResult').innerHTML=`<h3>ส่งหลักฐานเรียบร้อยแล้ว</h3><p>หมายเลขจอง: <b>${escapeHtml(activeEventBooking.code)}</b></p><p><span class="badge status-yellow">รอเจ้าของร้านตรวจสอบสลิป</span></p><p>การจองจะได้รับการยืนยันเมื่อเจ้าของร้านตรวจสอบการชำระเงินแล้วเท่านั้น</p>`;
     $('eventResult').classList.add('show');
     toast('ส่งสลิปเรียบร้อย รอการตรวจสอบ');
   }catch(err){console.error(err);toast('ส่งสลิปไม่สำเร็จ: '+(err.message||'กรุณาลองใหม่'));}
   finally{btn.disabled=false;btn.textContent='ส่งหลักฐานการชำระเงิน';}
 };
-// Event CTA is bound by selectEventCard() to the currently selected Event.
+restoreEventPayment();\n// Event CTA is bound by selectEventCard() to the currently selected Event.
 
 // Thai/English interface toggle for the prototype. Future activities can be added to the activities data list with translated names/details.
 const translations={
