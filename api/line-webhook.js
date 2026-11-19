@@ -28,7 +28,7 @@ function verifySignature(body, signature, secret) {
 }
 
 function supabaseConfig() {
-  const base = (process.env.SUPABASE_URL || '').replace(/\\/+$/, '');
+  const base = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!base || !key) throw new Error('Missing Supabase environment variables');
   return { base, key };
@@ -130,7 +130,7 @@ const handler = async (req, res) => {
       }
 
       // Customer link: LINK followed by the one-time booking token.
-      const match = message.match(/^LINK\\s+([A-Za-z0-9_-]{20,40})$/);
+      const match = message.match(/^LINK\s+([A-Za-z0-9_-]{20,40})$/);
       if (!match) continue;
 
       const linked = await linkCustomer(match[1], userId);
