@@ -16,6 +16,7 @@ module.exports = async function handler(req, res) {
   try {
     const bookingId=String(req.body?.bookingId||'').trim();
     const decision=String(req.body?.decision||'').trim();
+    console.info('[LINE customer review] request received', { decision, bookingIdPresent: Boolean(bookingId) });
     if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bookingId)||!['approve','reject'].includes(decision))
       return res.status(400).json({success:false,error:'Invalid request'});
     const rows=await db('event_bookings?select=id,booking_code,event_id,session_id,customer_name,booking_status,payment_status,payment_review_status,payment_rejection_reason,total_amount,deposit_amount,balance_amount&id=eq.'+bookingId);
@@ -27,7 +28,10 @@ module.exports = async function handler(req, res) {
     if(!valid) return res.status(409).json({success:false,error:'Booking review state does not match notification'});
     const links=await db('line_customer_links?select=line_user_id&booking_id=eq.'+bookingId);
     const userId=links?.[0]?.line_user_id;
-    if(!userId) return res.status(200).json({success:true,notified:false,reason:'customer_not_linked'});
+    if(!userId) {
+      console.warn('[LINE customer review] customer LINE is not linked', { bookingId, decision });
+      return res.status(200).json({success:true,notified:false,reason:'customer_not_linked'});
+    }
     const type=decision==='approve'?'booking_approved':'booking_rejected';
     const old=await db('line_customer_notification_logs?select=id,status&booking_id=eq.'+bookingId+'&notification_type=eq.'+type);
     if(old?.[0]?.status==='sent') return res.status(200).json({success:true,duplicate:true,notified:true});
@@ -51,6 +55,7 @@ module.exports = async function handler(req, res) {
     const sent=await fetch('https://api.line.me/v2/bot/message/push',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+lineToken},body:JSON.stringify({to:userId,messages:[{type:'text',text:message}]})});
     const sentText=await sent.text();
     if(!sent.ok) throw new Error('LINE push failed ('+sent.status+'): '+sentText);
+    console.info('[LINE customer review] LINE push accepted', { bookingId, decision, status: sent.status });
     await db('line_customer_notification_logs?id=eq.'+logId,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'sent',sent_at:new Date().toISOString(),error_message:null})});
     return res.status(200).json({success:true,notified:true,bookingCode:b.booking_code});
   } catch(e) {
