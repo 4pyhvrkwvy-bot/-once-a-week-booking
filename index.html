@@ -160,11 +160,12 @@ $('eventConfirm').onclick=async()=>{
       });
       const linkResult = await linkResponse.json();
       if (!linkResponse.ok || !linkResult.success) throw new Error(linkResult.error || 'LINE link unavailable');
-      $('lineCustomerLinkPanel').innerHTML =
-        '<strong>รับการแจ้งเตือนผ่าน LINE</strong><br>' +
-        '1. <a href="' + linkResult.addFriendUrl + '" target="_blank" rel="noopener">เพิ่มเพื่อน Once a Week LINE OA</a><br>' +
-        '2. ส่งข้อความนี้ใน LINE OA: <strong>LINK ' + linkResult.token + '</strong><br>' +
-        '<small>รหัสใช้ได้ 30 นาที และใช้ได้ครั้งเดียว กรุณาเชื่อมต่อก่อนหมดอายุ</small>';
+      $('lineCustomerLinkPanel').innerHTML = linkResult.alreadyLinked
+        ? '<strong>เชื่อมต่อ LINE สำหรับการจองนี้แล้ว</strong><br>คุณจะได้รับข้อความแจ้งผลการตรวจสอบมัดจำทาง LINE'
+        : '<strong>รับการแจ้งเตือนผ่าน LINE</strong><br>' +
+          '1. <a href="' + linkResult.addFriendUrl + '" target="_blank" rel="noopener">เพิ่มเพื่อน Once a Week LINE OA</a><br>' +
+          '2. ส่งข้อความนี้ใน LINE OA: <strong>LINK ' + linkResult.token + '</strong><br>' +
+          '<small>รหัสใช้ได้ 30 นาที และใช้ได้ครั้งเดียว กรุณาเชื่อมต่อก่อนหมดอายุ</small>';
     } catch (linkError) {
       console.warn('Could not create customer LINE link:', linkError);
       $('lineCustomerLinkPanel').innerHTML =
