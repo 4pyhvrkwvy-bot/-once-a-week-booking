@@ -37,12 +37,21 @@
 <h2 style="text-align:left">รายการจองและกิจกรรมที่กำลังดำเนินอยู่</h2><div id="bookingList" class="booking-list"></div><div class="panel hidden" id="eventAdminNav">
   <div class="topbar">
     <div><h3 style="margin:0">Event Management</h3><div class="subtle">จัดการ Special Events สำหรับเจ้าของร้าน</div></div>
-    <div class="inline-actions"><button class="btn secondary" id="openPaymentReviewsBtn">ตรวจสอบสลิปมัดจำ</button><button class="btn" id="openEventAdminBtn">จัดการ Events</button></div>
+    <div class="inline-actions"><button class="btn secondary" id="openPaymentReviewsBtn">ตรวจสอบสลิปมัดจำ</button><button class="btn secondary" id="openEventHistoryBtn">ประวัติการจอง Event</button><button class="btn" id="openEventAdminBtn">จัดการ Events</button></div>
   </div>
 </div>
 <section class="panel hidden" id="eventPaymentReviewPanel">
   <div class="topbar"><div><h3 style="margin:0">ตรวจสอบสลิปมัดจำ</h3><div class="subtle">เฉพาะ Owner · อนุมัติหลังตรวจสอบยอดเงินเข้าบัญชีแล้วเท่านั้น</div></div><div class="inline-actions"><button class="btn secondary" id="refreshPaymentReviewsBtn">รีเฟรช</button><button class="btn secondary" id="closePaymentReviewsBtn" type="button">ปิด</button></div></div>
   <div id="eventPaymentReviewList" class="booking-list"><div class="empty">กำลังโหลดรายการ...</div></div>
+</section>
+<section class="panel hidden" id="eventHistoryPanel">
+  <div class="topbar"><div><h3 style="margin:0">ประวัติการจอง Event</h3><div class="subtle">ดูรายชื่อลูกค้า จำนวนผู้เข้าร่วม และผลการตรวจสอบแยกตามรอบที่เปิด</div></div><div class="inline-actions"><button class="btn secondary" id="refreshEventHistoryBtn">รีเฟรช</button><button class="btn secondary" id="closeEventHistoryBtn">ปิด</button></div></div>
+  <div class="row">
+    <div class="field"><label for="eventHistoryFilter">เลือก Event</label><select id="eventHistoryFilter"><option value="">ทุก Event</option></select></div>
+    <div class="field"><label for="eventHistoryDate">เลือกวันที่</label><input type="date" id="eventHistoryDate"></div>
+  </div>
+  <div class="stats" id="eventHistoryStats"></div>
+  <div id="eventHistoryList"><div class="empty">กำลังโหลดประวัติ...</div></div>
 </section>
 <section class="panel hidden" id="eventAdminPanel">
   <div class="topbar"><h2 style="text-align:left;margin:0">จัดการ Special Events</h2><button class="btn secondary" id="closeEventAdminBtn">ปิด</button></div>
@@ -547,6 +556,60 @@ $('openPaymentReviewsBtn').addEventListener('click', async ()=>{
 });
 $('refreshPaymentReviewsBtn').addEventListener('click', loadEventPaymentReviews);
 $('closePaymentReviewsBtn').addEventListener('click', ()=>$('eventPaymentReviewPanel').classList.add('hidden'));
+$('openEventHistoryBtn').addEventListener('click', async ()=>{
+  if(!isEventOwner)return toast('ไม่มีสิทธิ์ดูประวัติ Event');
+  $('eventHistoryPanel').classList.remove('hidden');
+  await loadEventBookingHistory();
+  $('eventHistoryPanel').scrollIntoView({behavior:'smooth',block:'start'});
+});
+$('refreshEventHistoryBtn').addEventListener('click',loadEventBookingHistory);
+$('closeEventHistoryBtn').addEventListener('click',()=>$('eventHistoryPanel').classList.add('hidden'));
+$('eventHistoryFilter').addEventListener('change',renderEventBookingHistory);
+$('eventHistoryDate').addEventListener('change',renderEventBookingHistory);
+
+// Owner-only event booking history, grouped by event session.
+let eventBookingHistoryRows=[];
+async function loadEventBookingHistory(){
+  if(!isEventOwner)return toast('ไม่มีสิทธิ์ดูประวัติ Event');
+  const root=$('eventHistoryList');root.innerHTML='<div class="empty">กำลังโหลดประวัติ...</div>';
+  try{
+    eventBookingHistoryRows=await rpc('staff_event_booking_history',{p_staff_token:token})||[];
+    const events=[...new Map(eventBookingHistoryRows.map(r=>[r.event_id,r.event_title])).entries()];
+    const select=$('eventHistoryFilter'),current=select.value;
+    select.innerHTML='<option value="">ทุก Event</option>'+events.map(([id,title])=>`<option value="${esc(id)}">${esc(title)}</option>`).join('');
+    if(events.some(([id])=>id===current))select.value=current;
+    renderEventBookingHistory();
+  }catch(e){console.error(e);root.innerHTML='<div class="empty">โหลดประวัติไม่สำเร็จ: '+esc(e.message)+'</div>';}
+}
+function eventReviewStatus(r){
+  if(!r.booking_id)return ['ยังไม่มีผู้จอง','status-gray'];
+  if(r.payment_review_status==='approved')return ['อนุมัติแล้ว','status-green'];
+  if(r.payment_review_status==='pending_review')return ['รอตรวจสอบสลิป','status-yellow'];
+  if(r.payment_review_status==='rejected')return ['ปฏิเสธสลิป','status-red'];
+  if(r.payment_status==='deposit_paid')return ['ชำระมัดจำแล้ว','status-blue'];
+  if(r.booking_status==='cancelled')return ['ยกเลิกการจอง','status-gray'];
+  return ['รอชำระมัดจำ','status-yellow'];
+}
+function renderEventBookingHistory(){
+  const eventId=$('eventHistoryFilter').value,date=$('eventHistoryDate').value;
+  const rows=eventBookingHistoryRows.filter(r=>(!eventId||r.event_id===eventId)&&(!date||r.session_date===date));
+  const sessions=[...new Map(rows.map(r=>[r.session_id,r])).values()];
+  const bookingRows=rows.filter(r=>r.booking_id);
+  const guests=bookingRows.filter(r=>r.booking_status!=='cancelled').reduce((n,r)=>n+Number(r.party_size||0),0);
+  const approved=bookingRows.filter(r=>r.payment_review_status==='approved').length;
+  $('eventHistoryStats').innerHTML=`<div class="stat"><small>รอบที่เปิด</small><strong>${sessions.length}</strong></div><div class="stat"><small>รายการจอง</small><strong>${bookingRows.length}</strong></div><div class="stat"><small>ผู้เข้าร่วม (ไม่รวมยกเลิก)</small><strong>${guests}</strong></div><div class="stat"><small>อนุมัติแล้ว</small><strong>${approved}</strong></div>`;
+  const root=$('eventHistoryList');
+  if(!sessions.length){root.innerHTML='<div class="empty">ไม่พบรอบ Event ในเงื่อนไขที่เลือก</div>';return;}
+  root.innerHTML=sessions.map(s=>{
+    const bookings=rows.filter(r=>r.session_id===s.session_id&&r.booking_id);
+    const activeGuests=bookings.filter(r=>r.booking_status!=='cancelled').reduce((n,r)=>n+Number(r.party_size||0),0);
+    const list=bookings.length?bookings.map(r=>{
+      const [label,cls]=eventReviewStatus(r);
+      return `<article class="booking" style="margin:9px 0"><div class="topbar"><h3>${esc(r.customer_name)} · ${Number(r.party_size)} คน</h3><span class="badge ${cls}">${label}</span></div><div class="meta">Booking Code: ${esc(r.booking_code)}<br>โทร: ${esc(r.customer_phone||'ไม่ระบุ')}<br>สถานะจอง: ${esc(r.booking_status)} · สถานะชำระเงิน: ${esc(r.payment_status)}<br>ผลตรวจสอบ: ${esc(r.payment_review_status)}${r.payment_reviewed_at?'<br>ตรวจสอบเมื่อ: '+new Date(r.payment_reviewed_at).toLocaleString('th-TH'):''}${r.payment_reviewed_by?'<br>ตรวจสอบโดย: '+esc(r.payment_reviewed_by):''}${r.payment_rejection_reason?'<br>เหตุผลที่ปฏิเสธ: '+esc(r.payment_rejection_reason):''}</div></article>`;
+    }).join(''):'<div class="empty">รอบนี้ยังไม่มีรายการจอง</div>';
+    return `<details class="history-day" open><summary class="history-day-head"><h3>${esc(s.event_title)} · ${dateLabel(s.session_date)} · ${timeLabel(s.start_time)}–${timeLabel(s.end_time)} น.</h3><span class="history-day-total">${activeGuests}/${s.capacity} ที่นั่ง · ${bookings.length} รายการจอง</span></summary><div class="subtle">สถานะรอบ: ${esc(s.session_status)} · จำนวนผู้จองที่ยังไม่ยกเลิก: ${activeGuests} คน</div>${list}</details>`;
+  }).join('');
+}
 
 // Owner-only event deposit review queue.
 async function loadEventPaymentReviews(){
